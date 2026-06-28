@@ -35,6 +35,7 @@ except ImportError:
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from lib.traffic import TrafficDumper
 
 load_dotenv(override=True)
 if os.getenv("ANTHROPIC_BASE_URL"):
@@ -46,6 +47,7 @@ MEMORY_INDEX = MEMORY_DIR / "MEMORY.md"
 client = Anthropic(base_url=os.getenv("ANTHROPIC_BASE_URL"))
 PRIMARY_MODEL = os.environ["MODEL_ID"]
 FALLBACK_MODEL = os.getenv("FALLBACK_MODEL_ID")
+dumper = TrafficDumper()
 
 # ── Constants ──
 
@@ -277,6 +279,9 @@ def agent_loop(messages: list, context: dict):
                         model=mdl, system=system, messages=messages,
                         tools=TOOLS, max_tokens=mt),
                 state)
+            dumper.dump({"model": state.current_model, "system": system,
+                         "messages": messages, "tools": TOOLS,
+                         "max_tokens": max_tokens}, response)
         except Exception as e:
             # Path 2: prompt_too_long -> reactive compact (once)
             if is_prompt_too_long_error(e):

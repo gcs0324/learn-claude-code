@@ -41,6 +41,7 @@ except ImportError:
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from lib.traffic import TrafficDumper
 
 load_dotenv(override=True)
 if os.getenv("ANTHROPIC_BASE_URL"):
@@ -49,6 +50,7 @@ if os.getenv("ANTHROPIC_BASE_URL"):
 WORKDIR = Path.cwd()
 client = Anthropic(base_url=os.getenv("ANTHROPIC_BASE_URL"))
 MODEL = os.environ["MODEL_ID"]
+dumper = TrafficDumper()
 
 SYSTEM = f"You are a coding agent at {WORKDIR}. All destructive operations require user approval."
 
@@ -205,6 +207,8 @@ def agent_loop(messages: list):
             model=MODEL, system=SYSTEM, messages=messages,
             tools=TOOLS, max_tokens=8000,
         )
+        dumper.dump({"model": MODEL, "system": SYSTEM, "messages": messages,
+                     "tools": TOOLS, "max_tokens": 8000}, response)
         messages.append({"role": "assistant", "content": response.content})
 
         if response.stop_reason != "tool_use":

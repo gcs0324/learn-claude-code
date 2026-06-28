@@ -35,6 +35,7 @@ except ImportError:
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from lib.traffic import TrafficDumper
 
 load_dotenv(override=True)
 if os.getenv("ANTHROPIC_BASE_URL"): os.environ.pop("ANTHROPIC_AUTH_TOKEN", None)
@@ -47,6 +48,7 @@ TRANSCRIPT_DIR = WORKDIR / ".transcripts"
 TOOL_RESULTS_DIR = WORKDIR / ".task_outputs" / "tool-results"
 client = Anthropic(base_url=os.getenv("ANTHROPIC_BASE_URL"))
 MODEL = os.environ["MODEL_ID"]
+dumper = TrafficDumper()
 
 
 # ═══════════════════════════════════════════════════════════
@@ -177,6 +179,8 @@ def select_relevant_memories(messages: list, max_items: int = 5) -> list[str]:
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200,
         )
+        dumper.dump({"model": MODEL, "messages": [{"role": "user", "content": prompt}],
+                     "max_tokens": 200}, response)
         text = extract_text(response.content).strip()
         # Extract JSON array from response
         match = re.search(r'\[.*?\]', text, re.DOTALL)
@@ -259,6 +263,8 @@ def extract_memories(messages: list):
         response = client.messages.create(
             model=MODEL, messages=[{"role": "user", "content": prompt}], max_tokens=800
         )
+        dumper.dump({"model": MODEL, "messages": [{"role": "user", "content": prompt}],
+                     "max_tokens": 800}, response)
         text = extract_text(response.content).strip()
         # Extract JSON array from response
         match = re.search(r'\[.*\]', text, re.DOTALL)
@@ -309,6 +315,8 @@ def consolidate_memories():
         response = client.messages.create(
             model=MODEL, messages=[{"role": "user", "content": prompt}], max_tokens=3000
         )
+        dumper.dump({"model": MODEL, "messages": [{"role": "user", "content": prompt}],
+                     "max_tokens": 3000}, response)
         text = extract_text(response.content).strip()
         match = re.search(r'\[.*\]', text, re.DOTALL)
         if not match:
@@ -420,6 +428,8 @@ def spawn_subagent(description: str) -> str:
     for _ in range(30):
         response = client.messages.create(model=MODEL, system=SUB_SYSTEM,
             messages=messages, tools=SUB_TOOLS, max_tokens=8000)
+        dumper.dump({"model": MODEL, "system": SUB_SYSTEM, "messages": messages,
+                     "tools": SUB_TOOLS, "max_tokens": 8000}, response)
         messages.append({"role": "assistant", "content": response.content})
         if response.stop_reason != "tool_use": break
         results = []
@@ -531,6 +541,10 @@ def summarize_history(msgs):
         "Summarize this coding-agent conversation so work can continue.\n"
         "Preserve: 1. current goal, 2. key findings, 3. files changed, 4. remaining work, 5. user constraints.\n\n" + conv}],
         max_tokens=2000)
+    dumper.dump({"model": MODEL, "messages": [{"role": "user", "content":
+        "Summarize this coding-agent conversation so work can continue.\n"
+        "Preserve: 1. current goal, 2. key findings, 3. files changed, 4. remaining work, 5. user constraints.\n\n" + conv}],
+        "max_tokens": 2000}, r)
     return extract_text(r.content).strip()
 
 def compact_history(msgs):
@@ -613,6 +627,8 @@ def agent_loop(messages: list):
             response = client.messages.create(
                 model=MODEL, system=system, messages=request_messages, tools=TOOLS, max_tokens=8000
             )
+            dumper.dump({"model": MODEL, "system": system, "messages": request_messages,
+                         "tools": TOOLS, "max_tokens": 8000}, response)
             reactive_retries = 0
         except Exception as e:
             if ("prompt_too_long" in str(e).lower() or "too many tokens" in str(e).lower()) and reactive_retries < MAX_REACTIVE_RETRIES:

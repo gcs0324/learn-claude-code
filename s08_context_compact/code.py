@@ -43,6 +43,7 @@ except ImportError:
 
 from anthropic import Anthropic
 from dotenv import load_dotenv
+from lib.traffic import TrafficDumper
 
 load_dotenv(override=True)
 if os.getenv("ANTHROPIC_BASE_URL"): os.environ.pop("ANTHROPIC_AUTH_TOKEN", None)
@@ -54,6 +55,7 @@ TOOL_RESULTS_DIR = WORKDIR / ".task_outputs" / "tool-results"
 client = Anthropic(base_url=os.getenv("ANTHROPIC_BASE_URL"))
 MODEL = os.environ["MODEL_ID"]
 CURRENT_TODOS: list[dict] = []
+dumper = TrafficDumper()
 
 # s07: Skill catalog scan (inherited from s07)
 def _parse_frontmatter(text: str) -> tuple[dict, str]:
@@ -228,6 +230,8 @@ def spawn_subagent(description: str) -> str:
     for _ in range(30):
         response = client.messages.create(model=MODEL, system=SUB_SYSTEM,
             messages=messages, tools=SUB_TOOLS, max_tokens=8000)
+        dumper.dump({"model": MODEL, "system": SUB_SYSTEM, "messages": messages,
+                     "tools": SUB_TOOLS, "max_tokens": 8000}, response)
         messages.append({"role": "assistant", "content": response.content})
         if response.stop_reason != "tool_use":
             break
@@ -367,6 +371,7 @@ def summarize_history(messages):
               "Preserve: 1. current goal, 2. key findings/decisions, 3. files read/changed, "
               "4. remaining work, 5. user constraints.\nBe compact but concrete.\n\n" + conversation)
     response = client.messages.create(model=MODEL, messages=[{"role": "user", "content": prompt}], max_tokens=2000)
+    dumper.dump({"model": MODEL, "messages": [{"role": "user", "content": prompt}], "max_tokens": 2000}, response)
     return "\n".join(
         getattr(block, "text", "")
         for block in response.content
@@ -467,6 +472,8 @@ def agent_loop(messages: list):
 
         try:
             response = client.messages.create(model=MODEL, system=SYSTEM, messages=messages, tools=TOOLS, max_tokens=8000)
+            dumper.dump({"model": MODEL, "system": SYSTEM, "messages": messages,
+                         "tools": TOOLS, "max_tokens": 8000}, response)
             reactive_retries = 0  # reset on successful API call
         except Exception as e:
             if ("prompt_too_long" in str(e).lower() or "too many tokens" in str(e).lower()) and reactive_retries < MAX_REACTIVE_RETRIES:

@@ -29,6 +29,7 @@ Usage:
 
 import os
 import subprocess
+import sys
 
 try:
     import readline
@@ -43,6 +44,10 @@ except ImportError:
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
+# Add project root to path so we can import from lib/
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from lib.traffic import TrafficDumper
+
 load_dotenv(override=True)
 
 if os.getenv("ANTHROPIC_BASE_URL"):
@@ -52,6 +57,9 @@ client = Anthropic(base_url=os.getenv("ANTHROPIC_BASE_URL"))
 MODEL = os.environ["MODEL_ID"]
 
 SYSTEM = f"You are a coding agent at {os.getcwd()}. Use bash to solve tasks. Act, don't explain."
+
+# ── Traffic dump: capture every API call for inspection ────────
+dumper = TrafficDumper()
 
 # ── Tool definition: just bash ────────────────────────────
 TOOLS = [{
@@ -88,6 +96,8 @@ def agent_loop(messages: list):
             model=MODEL, system=SYSTEM, messages=messages,
             tools=TOOLS, max_tokens=8000,
         )
+        dumper.dump({"model": MODEL, "system": SYSTEM, "messages": messages,
+                     "tools": TOOLS, "max_tokens": 8000}, response)
 
         # Append assistant turn
         messages.append({"role": "assistant", "content": response.content})

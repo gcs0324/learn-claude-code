@@ -61,11 +61,13 @@ class Block:
     def set_h(self, h: int): self._h = h
 
 def layout_row(blocks: list[Block]) -> tuple[list[int], float]:
-    """Equalize heights. Keep natural widths, return (widths, start_x) for centering."""
+    """Equalize heights. Scale widths +20%, double gap, center."""
     maxh = max(b.h for b in blocks)
     for b in blocks:
         b.set_h(maxh)
-    natural_total = sum(b.w for b in blocks) + GAP * (len(blocks) - 1)
+        b.set_w(int(b.w * 1.2))  # +20% width
+    dbl_gap = GAP * 2
+    natural_total = sum(b.w for b in blocks) + dbl_gap * (len(blocks) - 1)
     available = FULL_W - 2 * INNER_PAD
     start_x = LEFT_X + INNER_PAD + (available - natural_total) / 2
     return [b.w for b in blocks], start_x
@@ -78,6 +80,7 @@ def render_blocks(x: float, y: float, blocks: list[Block]) -> list[str]:
     """Generate SVG elements for a row of centered, naturally-sized blocks."""
     ws, start_x = layout_row(blocks)
     out = []
+    dbl_gap = GAP * 2
     cx = start_x
     for b, bw in zip(blocks, ws):
         extra = ""
@@ -88,7 +91,7 @@ def render_blocks(x: float, y: float, blocks: list[Block]) -> list[str]:
         for line in b.lines:
             out.append(f'  <text x="{cx+PAD_X:.0f}" y="{ty:.0f}" fill="{b.text_color}" font-size="{b.fs:.0f}" font-family="Menlo, Monaco, monospace">{esc(line)}</text>')
             ty += LH
-        cx += bw + GAP
+        cx += bw + dbl_gap
     return out
 
 def phase_label(y: float, text: str, color: str, fs: float = 12) -> tuple[list[str], float]:

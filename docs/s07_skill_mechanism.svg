@@ -9,108 +9,108 @@
   <rect x="30" y="73" width="184" height="13" fill="#64748b"/>
   <text x="122" y="78" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">0. 安装 (开发者操作)</text>
   <rect x="30" y="92" width="1340" height="146" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
-  <rect x="370" y="102" width="146" height="126" fill="#1e293b" rx="5"/>
-  <text x="390" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">skills/</text>
-  <text x="390" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">├── code-review/</text>
-  <text x="390" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">│   └── SKILL.md</text>
-  <rect x="532" y="102" width="271" height="126" fill="#0f172a" rx="5"/>
-  <text x="552" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">SKILL.md 内容:</text>
-  <text x="552" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">---</text>
-  <text x="552" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">name: code-review</text>
-  <text x="552" y="176" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">description: 代码审查,安全检查,性能</text>
-  <text x="552" y="193" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">---</text>
-  <text x="552" y="210" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"># Code Review Skill ...</text>
-  <rect x="818" y="102" width="212" height="126" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
-  <text x="838" y="125" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">安装 = 创建文件</text>
-  <text x="838" y="142" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">放在 skills/&lt;name&gt;/ 下即可</text>
-  <text x="838" y="159" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">程序启动时自动发现</text>
-  <text x="838" y="176" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">无需注册, 无需配置</text>
+  <rect x="293" y="102" width="175" height="126" fill="#1e293b" rx="5"/>
+  <text x="313" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">skills/</text>
+  <text x="313" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">├── code-review/</text>
+  <text x="313" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">│   └── SKILL.md</text>
+  <rect x="498" y="102" width="325" height="126" fill="#0f172a" rx="5"/>
+  <text x="518" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">SKILL.md 内容:</text>
+  <text x="518" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">---</text>
+  <text x="518" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">name: code-review</text>
+  <text x="518" y="176" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">description: 代码审查,安全检查,性能</text>
+  <text x="518" y="193" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">---</text>
+  <text x="518" y="210" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"># Code Review Skill ...</text>
+  <rect x="853" y="102" width="254" height="126" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="873" y="125" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">安装 = 创建文件</text>
+  <text x="873" y="142" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">放在 skills/&lt;name&gt;/ 下即可</text>
+  <text x="873" y="159" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">程序启动时自动发现</text>
+  <text x="873" y="176" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">无需注册, 无需配置</text>
   <line x1="700" y1="248" x2="700" y2="264" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
   <rect x="30" y="270" width="228" height="26" fill="#2563eb" rx="6"/>
   <rect x="30" y="283" width="228" height="13" fill="#2563eb"/>
   <text x="144" y="288" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">1. 启动扫描 _scan_skills()</text>
   <rect x="30" y="302" width="1340" height="163" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
-  <rect x="324" y="312" width="285" height="143" fill="#0f172a" rx="5"/>
-  <text x="344" y="335" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def _scan_skills():</text>
-  <text x="344" y="352" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  for d in SKILLS_DIR.iterdir():</text>
-  <text x="344" y="369" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    manifest = d / "SKILL.md"</text>
-  <text x="344" y="386" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    meta,body=_parse_frontmatter(raw)</text>
-  <text x="344" y="403" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    SKILL_REGISTRY[name] = {</text>
-  <text x="344" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "name":name,"description":desc,</text>
-  <text x="344" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "content":raw }</text>
-  <rect x="624" y="312" width="232" height="143" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
-  <text x="644" y="335" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">SKILL_REGISTRY (内存字典)</text>
-  <text x="644" y="352" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">─────────────────</text>
-  <text x="644" y="369" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">"code-review" → {</text>
-  <text x="644" y="386" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  name: "code-review",</text>
-  <text x="644" y="403" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  description: "代码审查...",</text>
-  <text x="644" y="420" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  content: "---\nname: ..."</text>
-  <text x="644" y="437" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">}</text>
-  <rect x="871" y="312" width="205" height="143" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
-  <text x="891" y="335" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">启动时执行一次</text>
-  <text x="891" y="352" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">所有 skill 常驻内存</text>
-  <text x="891" y="369" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">后续查找 O(1)</text>
-  <text x="891" y="386" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">成本: 0 tokens (纯文件IO)</text>
+  <rect x="237" y="312" width="342" height="143" fill="#0f172a" rx="5"/>
+  <text x="257" y="335" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def _scan_skills():</text>
+  <text x="257" y="352" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  for d in SKILLS_DIR.iterdir():</text>
+  <text x="257" y="369" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    manifest = d / "SKILL.md"</text>
+  <text x="257" y="386" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    meta,body=_parse_frontmatter(raw)</text>
+  <text x="257" y="403" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    SKILL_REGISTRY[name] = {</text>
+  <text x="257" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "name":name,"description":desc,</text>
+  <text x="257" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "content":raw }</text>
+  <rect x="609" y="312" width="278" height="143" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="629" y="335" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">SKILL_REGISTRY (内存字典)</text>
+  <text x="629" y="352" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">─────────────────</text>
+  <text x="629" y="369" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">"code-review" → {</text>
+  <text x="629" y="386" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  name: "code-review",</text>
+  <text x="629" y="403" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  description: "代码审查...",</text>
+  <text x="629" y="420" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  content: "---\nname: ..."</text>
+  <text x="629" y="437" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">}</text>
+  <rect x="917" y="312" width="246" height="143" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="937" y="335" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">启动时执行一次</text>
+  <text x="937" y="352" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">所有 skill 常驻内存</text>
+  <text x="937" y="369" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">后续查找 O(1)</text>
+  <text x="937" y="386" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">成本: 0 tokens (纯文件IO)</text>
   <line x1="700" y1="475" x2="700" y2="491" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
   <rect x="30" y="497" width="192" height="26" fill="#7c3aed" rx="6"/>
   <rect x="30" y="510" width="192" height="13" fill="#7c3aed"/>
   <text x="126" y="515" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">2. 注入 SYSTEM prompt</text>
   <rect x="30" y="529" width="1340" height="129" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
-  <rect x="444" y="539" width="232" height="109" fill="#0f172a" rx="5"/>
-  <text x="464" y="562" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def build_system():</text>
-  <text x="464" y="579" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  catalog = list_skills()</text>
-  <text x="464" y="596" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return f"Skills available:"</text>
-  <text x="464" y="613" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">         f"{catalog}\n"</text>
-  <text x="464" y="630" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">         "Use load_skill ..."</text>
-  <rect x="691" y="539" width="265" height="109" fill="#faf5ff" rx="5" stroke="#a855f7" stroke-width="1.5"/>
-  <text x="711" y="562" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">SYSTEM prompt (每次API请求都携带):</text>
-  <text x="711" y="579" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">Skills available:</text>
-  <text x="711" y="596" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">- code-review: 代码审查,安全检查,</text>
-  <text x="711" y="613" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  性能分析,可维护性评估</text>
-  <text x="711" y="630" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">成本: ~100 tokens/skill</text>
+  <rect x="387" y="539" width="278" height="109" fill="#0f172a" rx="5"/>
+  <text x="407" y="562" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def build_system():</text>
+  <text x="407" y="579" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  catalog = list_skills()</text>
+  <text x="407" y="596" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return f"Skills available:"</text>
+  <text x="407" y="613" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">         f"{catalog}\n"</text>
+  <text x="407" y="630" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">         "Use load_skill ..."</text>
+  <rect x="695" y="539" width="318" height="109" fill="#faf5ff" rx="5" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="715" y="562" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">SYSTEM prompt (每次API请求都携带):</text>
+  <text x="715" y="579" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">Skills available:</text>
+  <text x="715" y="596" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">- code-review: 代码审查,安全检查,</text>
+  <text x="715" y="613" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  性能分析,可维护性评估</text>
+  <text x="715" y="630" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">成本: ~100 tokens/skill</text>
   <line x1="700" y1="668" x2="700" y2="684" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
   <rect x="30" y="690" width="256" height="26" fill="#dc2626" rx="6"/>
   <rect x="30" y="703" width="256" height="13" fill="#dc2626"/>
   <text x="158" y="708" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">3. 大模型判断并调用 load_skill</text>
   <rect x="30" y="722" width="1340" height="180" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
-  <rect x="386" y="732" width="219" height="160" fill="#fef2f2" rx="5" stroke="#fca5a5" stroke-width="1.5"/>
-  <text x="406" y="755" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">大模型推理过程:</text>
-  <text x="406" y="772" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">(1) 用户: "帮我review代码"</text>
-  <text x="406" y="789" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">(2) SYSTEM: code-review可用</text>
-  <text x="406" y="806" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">(3) 判断: 加载此skill</text>
-  <rect x="620" y="732" width="199" height="160" fill="#0f172a" rx="5"/>
-  <text x="640" y="755" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">大模型发起的tool_use:</text>
-  <text x="640" y="772" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">{</text>
-  <text x="640" y="789" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">  "type":"tool_use",</text>
-  <text x="640" y="806" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">  "name":"load_skill",</text>
-  <text x="640" y="823" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">  "input":{</text>
-  <text x="640" y="840" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">    "name":"code-review"</text>
-  <text x="640" y="857" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">  }</text>
-  <text x="640" y="874" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">}</text>
-  <rect x="834" y="732" width="179" height="160" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
-  <text x="854" y="755" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">大模型如何知道该调用?</text>
-  <text x="854" y="772" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">1. SYSTEM有skill目录</text>
-  <text x="854" y="789" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">2. TOOLS有load_skill</text>
-  <text x="854" y="806" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">3. 匹配任务与描述</text>
-  <text x="854" y="823" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">4. 发起tool_use</text>
+  <rect x="313" y="732" width="262" height="160" fill="#fef2f2" rx="5" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="333" y="755" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">大模型推理过程:</text>
+  <text x="333" y="772" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">(1) 用户: "帮我review代码"</text>
+  <text x="333" y="789" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">(2) SYSTEM: code-review可用</text>
+  <text x="333" y="806" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">(3) 判断: 加载此skill</text>
+  <rect x="605" y="732" width="238" height="160" fill="#0f172a" rx="5"/>
+  <text x="625" y="755" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">大模型发起的tool_use:</text>
+  <text x="625" y="772" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">{</text>
+  <text x="625" y="789" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">  "type":"tool_use",</text>
+  <text x="625" y="806" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">  "name":"load_skill",</text>
+  <text x="625" y="823" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">  "input":{</text>
+  <text x="625" y="840" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">    "name":"code-review"</text>
+  <text x="625" y="857" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">  }</text>
+  <text x="625" y="874" fill="#93c5fd" font-size="11" font-family="Menlo, Monaco, monospace">}</text>
+  <rect x="873" y="732" width="214" height="160" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="893" y="755" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">大模型如何知道该调用?</text>
+  <text x="893" y="772" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">1. SYSTEM有skill目录</text>
+  <text x="893" y="789" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">2. TOOLS有load_skill</text>
+  <text x="893" y="806" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">3. 匹配任务与描述</text>
+  <text x="893" y="823" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">4. 发起tool_use</text>
   <line x1="700" y1="912" x2="700" y2="928" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
   <rect x="30" y="934" width="242" height="26" fill="#16a34a" rx="6"/>
   <rect x="30" y="947" width="242" height="13" fill="#16a34a"/>
   <text x="151" y="952" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">4. load_skill() 返回完整内容</text>
   <rect x="30" y="966" width="1340" height="163" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
-  <rect x="458" y="976" width="265" height="143" fill="#0f172a" rx="5"/>
-  <text x="478" y="999" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def load_skill(name):</text>
-  <text x="478" y="1016" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  skill = SKILL_REGISTRY.get(name)</text>
-  <text x="478" y="1033" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return skill["content"]</text>
-  <text x="478" y="1050" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  # 返回完整SKILL.md原文</text>
-  <rect x="738" y="976" width="205" height="143" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
-  <text x="758" y="999" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">tool_result (注入上下文):</text>
-  <text x="758" y="1016" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">"---</text>
-  <text x="758" y="1033" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">name: code-review</text>
-  <text x="758" y="1050" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">---</text>
-  <text x="758" y="1067" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"># Code Review Skill</text>
-  <text x="758" y="1084" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">## 1. Security ..."</text>
-  <text x="758" y="1101" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">成本: ~2000 tokens</text>
+  <rect x="403" y="976" width="318" height="143" fill="#0f172a" rx="5"/>
+  <text x="423" y="999" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def load_skill(name):</text>
+  <text x="423" y="1016" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  skill = SKILL_REGISTRY.get(name)</text>
+  <text x="423" y="1033" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return skill["content"]</text>
+  <text x="423" y="1050" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  # 返回完整SKILL.md原文</text>
+  <rect x="751" y="976" width="246" height="143" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="771" y="999" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">tool_result (注入上下文):</text>
+  <text x="771" y="1016" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">"---</text>
+  <text x="771" y="1033" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">name: code-review</text>
+  <text x="771" y="1050" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">---</text>
+  <text x="771" y="1067" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"># Code Review Skill</text>
+  <text x="771" y="1084" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">## 1. Security ..."</text>
+  <text x="771" y="1101" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">成本: ~2000 tokens</text>
   <rect x="30" y="1133" width="1340" height="20" fill="#ecfdf5" stroke="#6ee7b7" rx="3"/>
   <text x="700" y="1147" fill="#065f46" font-size="11" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">大模型获得完整skill指令 → 按SKILL.md检查清单执行: 安全检查→正确性→性能→可维护性</text>
   <line x1="700" y1="1159" x2="700" y2="1175" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
@@ -118,23 +118,23 @@
   <rect x="30" y="1194" width="271" height="13" fill="#0ea5e9"/>
   <text x="165" y="1199" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">5. TOOLS 注册 (大模型为何能调用)</text>
   <rect x="30" y="1213" width="1340" height="180" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
-  <rect x="414" y="1223" width="304" height="160" fill="#0f172a" rx="5"/>
-  <text x="434" y="1246" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">TOOLS = [ ...,</text>
-  <text x="434" y="1263" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  { "name":"load_skill",</text>
-  <text x="434" y="1280" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    "description":"Load full content</text>
-  <text x="434" y="1297" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">                  of a skill by name.",</text>
-  <text x="434" y="1314" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    "input_schema":{</text>
-  <text x="434" y="1331" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "properties":{</text>
-  <text x="434" y="1348" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">        "name":{"type":"string"} } } } ]</text>
-  <rect x="734" y="1223" width="252" height="160" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
-  <text x="754" y="1246" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">TOOL_HANDLERS = {</text>
-  <text x="754" y="1263" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">  "load_skill": load_skill,</text>
-  <text x="754" y="1280" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">}</text>
-  <text x="754" y="1297" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
-  <text x="754" y="1314" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">agent_loop 流程:</text>
-  <text x="754" y="1331" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">  tool_use → TOOL_HANDLERS[name]</text>
-  <text x="754" y="1348" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">  → handler(**input)</text>
-  <text x="754" y="1365" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">  → tool_result 返回给大模型</text>
+  <rect x="352" y="1223" width="364" height="160" fill="#0f172a" rx="5"/>
+  <text x="372" y="1246" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">TOOLS = [ ...,</text>
+  <text x="372" y="1263" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  { "name":"load_skill",</text>
+  <text x="372" y="1280" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    "description":"Load full content</text>
+  <text x="372" y="1297" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">                  of a skill by name.",</text>
+  <text x="372" y="1314" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    "input_schema":{</text>
+  <text x="372" y="1331" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "properties":{</text>
+  <text x="372" y="1348" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">        "name":{"type":"string"} } } } ]</text>
+  <rect x="746" y="1223" width="302" height="160" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="766" y="1246" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">TOOL_HANDLERS = {</text>
+  <text x="766" y="1263" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">  "load_skill": load_skill,</text>
+  <text x="766" y="1280" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">}</text>
+  <text x="766" y="1297" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="766" y="1314" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">agent_loop 流程:</text>
+  <text x="766" y="1331" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">  tool_use → TOOL_HANDLERS[name]</text>
+  <text x="766" y="1348" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">  → handler(**input)</text>
+  <text x="766" y="1365" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">  → tool_result 返回给大模型</text>
   <rect x="30" y="1408" width="1340" height="280" fill="#1e293b" rx="8"/>
   <text x="700" y="1443" fill="#fbbf24" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">两级加载架构 · 总结</text>
   <rect x="80" y="1478" width="336" height="114" fill="#334155" rx="6"/>

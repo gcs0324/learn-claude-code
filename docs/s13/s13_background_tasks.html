@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s13 Background Tasks 后台任务</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s13 Background Tasks 后台任务</h1>
+<p class="subtitle">daemon 线程异步执行 · 通知注入 · Agent 不阻塞</p>
+
+<h2>1. 同步 vs 后台</h2>
+<table>
+  <tr><th></th><th>同步 (s12)</th><th>后台 (s13)</th></tr>
+  <tr><td><b>慢操作</b></td><td>Agent 干等</td><td>后台线程执行</td></tr>
+  <tr><td><b>Agent 空闲</b></td><td>是</td><td>否，继续处理</td></tr>
+  <tr><td><b>结果</b></td><td>立即返回</td><td>下轮注入通知</td></tr>
+  <tr><td><b>判断标准</b></td><td>无</td><td><code>run_in_background</code> 参数 + 启发式兜底</td></tr>
+</table>
+
+<div class="note">
+  <strong>类比:</strong> 洗衣机。衣服扔进去，按下启动，然后去干别的。30 分钟后洗衣机提醒你好了。你不会站在洗衣机前面干等。Agent 也一样——<code>npm install</code> 丢后台，继续处理其他任务。
+</div>
+
+<h2>2. 整体架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph detect["判断: should_run_background"]
+        direction LR
+        D1["run_in_background 参数<br/>模型显式请求 (优先)"]
+        D2["is_slow_operation<br/>关键词启发式 (兜底)"]
+        D1 --> D2
+    end
+
+    subgraph dispatch["分发: start_background_task"]
+        direction LR
+        S1["daemon 线程执行命令"]
+        S2["background_tasks 字典<br/>记录生命周期"]
+        S3["background_results 字典<br/>线程安全存储结果"]
+        S1 --> S2 --> S3
+    end
+
+    subgraph collect["收集: collect_background_results"]
+        direction LR
+        C1["检查 completed 状态"]
+        C2["取出结果 + 清理"]
+        C3["注入通知到对话"]
+        C1 --> C2 --> C3
+    end
+
+    detect -->|"慢操作"| dispatch -->|"完成后"| collect
+    detect -->|"快操作"| sync["同步执行 (不变)"]
+</div>
+
+<h2>3. 后台执行流程 (时序图)</h2>
+<div class="mermaid">
+sequenceDiagram
+    participant Agt as Agent
+    participant Lop as agent_loop
+    participant Chk as should_run_background
+    participant Bg as start_background_task
+    participant Thr as daemon线程
+    participant Col as collect_background_results
+
+    Note over Agt,Thr: 慢操作分发
+    Agt->>Lop: LLM 返回 bash tool_use
+    Lop->>Chk: should_run_background bash install
+    Chk-->>Lop: true 模型显式请求或关键词命中
+    Lop->>Bg: start_background_task block
+    Bg->>Thr: 启动 daemon 线程
+    Bg-->>Lop: bg_0001 后台任务 ID
+    Lop->>Agt: 注入 placeholder 通知
+
+    Note over Agt,Thr: Agent 继续处理
+    Agt->>Lop: 下一轮 LLM 调用
+    Lop->>Col: collect_background_results
+    Col-->>Lop: bg_0001 已完成 返回输出
+    Lop->>Agt: 注入 task_notification
+
+    Note over Agt,Thr: 线程安全
+    Thr->>Thr: 执行命令 写入 background_results
+    Lop->>Col: threading.Lock 保护读写
+</div>
+
+<h2>4. should_run_background 双重判断</h2>
+<div class="mermaid">
+flowchart TD
+    A["should_run_background tool_name tool_input"] --> B{"run_in_background 参数?"}
+    B -->|"true 模型显式请求"| C["返回 true (优先)"]
+    B -->|"false 或未设置"| D["is_slow_operation 启发式"]
+    D --> E{"命令包含慢操作关键词?"}
+    E -->|"是 install build test deploy compile"| C
+    E -->|"否"| F["返回 false 同步执行"]
+</div>
+
+<h2>5. 关键函数速查</h2>
+<table>
+  <tr><th>函数</th><th>代码行</th><th>作用</th><th>调用时机</th></tr>
+  <tr><td><code>is_slow_operation()</code></td><td>318</td><td>关键词启发式：install/build/test/deploy/compile 等</td><td>should_run_background 兜底</td></tr>
+  <tr><td><code>should_run_background()</code></td><td>329</td><td>模型显式请求优先 + 启发式兜底</td><td>agent_loop 工具分发前</td></tr>
+  <tr><td><code>start_background_task()</code></td><td>344</td><td>包装为 worker → daemon 线程执行</td><td>should_run_background 返回 true 时</td></tr>
+  <tr><td><code>collect_background_results()</code></td><td>369</td><td>收集已完成的后台任务结果 + 清理</td><td>agent_loop 每轮工具执行后</td></tr>
+  <tr><td><code>background_tasks</code></td><td>313</td><td>dict: bg_id → {tool_use_id, command, status}</td><td>生命周期追踪</td></tr>
+  <tr><td><code>background_results</code></td><td>314</td><td>dict: bg_id → output (线程安全 Lock 保护)</td><td>结果存储</td></tr>
+</table>
+
+<h2>6. 新增方法详解</h2>
+
+<p>s13 在 s12 基础上增加了 <strong>4 个方法 + 3 个数据结构</strong>，聚焦于后台异步执行：</p>
+
+<table>
+  <tr><th>层次</th><th>方法/数据</th><th>代码行</th><th>作用</th><th>触发时机</th></tr>
+  <tr>
+    <td rowspan="2"><b>判断层</b></td>
+    <td><code>is_slow_operation()</code></td><td>318</td><td>关键词匹配：install build test deploy compile 等</td><td>should_run_background 兜底</td>
+  </tr>
+  <tr>
+    <td><code>should_run_background()</code></td><td>329</td><td>run_in_background 参数优先 + 启发式兜底</td><td>agent_loop 每个 tool_use block 分发前</td>
+  </tr>
+  <tr>
+    <td rowspan="2"><b>执行层</b></td>
+    <td><code>start_background_task()</code></td><td>344</td><td>包装 worker → daemon 线程 → 记录到 background_tasks</td><td>should_run_background 返回 true 时</td>
+  </tr>
+  <tr>
+    <td><code>collect_background_results()</code></td><td>369</td><td>收集 completed 任务 → 取出结果 → 清理字典</td><td>agent_loop 每轮工具执行后</td>
+  </tr>
+  <tr>
+    <td rowspan="3"><b>数据层</b></td>
+    <td><code>background_tasks</code></td><td>313</td><td>dict: bg_id → {tool_use_id, command, status}</td><td>生命周期追踪</td>
+  </tr>
+  <tr>
+    <td><code>background_results</code></td><td>314</td><td>dict: bg_id → output</td><td>结果存储</td>
+  </tr>
+  <tr>
+    <td><code>background_lock</code></td><td>315</td><td>threading.Lock 保护字典并发读写</td><td>每次访问 background_tasks/results</td>
+  </tr>
+</table>
+
+<h2>7. 整体流程变化：s12 → s13</h2>
+
+<h3>s12 流程（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    T1["tool_use block"] --> T2["同步执行 handler"]
+    T2 --> T3["返回 tool_result"]
+    T3 --> T4["下一轮 LLM 调用"]
+</div>
+
+<h3>s13 流程（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    subgraph dispatch["工具分发"]
+        direction LR
+        D1["tool_use block"] --> D2{"should_run_background?"}
+        D2 -->|"否 快操作"| D3["同步执行 handler"]
+        D2 -->|"是 慢操作"| D4["start_background_task"]
+        D4 --> D5["daemon 线程执行"]
+        D5 --> D6["注入 placeholder"]
+    end
+
+    subgraph collect["结果收集 每轮工具执行后"]
+        direction LR
+        C1["collect_background_results"] --> C2["检查 completed 状态"]
+        C2 --> C3["取出结果"]
+        C3 --> C4["注入 task_notification"]
+    end
+
+    subgraph next["下一轮"]
+        N1["LLM 看到通知"]
+    end
+
+    dispatch --> collect --> next
+    next -.->|"继续循环"| dispatch
+</div>
+
+<h3>三个关键设计细节</h3>
+
+<table>
+  <tr><th style="width:180px">设计点</th><th>说明</th></tr>
+  <tr>
+    <td><b>双重判断</b></td>
+    <td>
+      模型通过 <code>run_in_background</code> 参数显式声明慢操作（优先）；模型未指定时，关键词启发式兜底。<br/>
+      真实 CC 的 bash 工具 schema 里有 <code>run_in_background: boolean</code>，模型自己决定，不靠关键词猜。
+    </td>
+  </tr>
+  <tr>
+    <td><b>daemon 线程 + Lock</b></td>
+    <td>
+      <code>threading.Thread(daemon=True)</code> 执行命令，主线程不阻塞。<br/>
+      <code>threading.Lock</code> 保护 <code>background_tasks</code> 和 <code>background_results</code> 字典的并发读写。
+    </td>
+  </tr>
+  <tr>
+    <td><b>通知注入</b></td>
+    <td>
+      后台任务开始时注入 placeholder（Agent 知道有任务在跑）。<br/>
+      后台任务完成后，<code>collect_background_results</code> 收集结果，以 <code>task_notification</code> 格式注入下一轮对话。
+    </td>
+  </tr>
+</table>
+
+<h2>8. s12 vs s13 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s12</th><th>s13</th></tr>
+  <tr><td><b>慢操作处理</b></td><td>Agent 同步等待</td><td>daemon 线程后台执行</td></tr>
+  <tr><td><b>Agent 阻塞</b></td><td>是（等 bash 返回）</td><td>否（继续处理其他任务）</td></tr>
+  <tr><td><b>并发机制</b></td><td>无</td><td>threading.Thread + threading.Lock</td></tr>
+  <tr><td><b>判断方式</b></td><td>无</td><td>run_in_background 参数 + 关键词启发式</td></tr>
+  <tr><td><b>结果通知</b></td><td>tool_result 立即返回</td><td>task_notification 下轮注入</td></tr>
+  <tr><td><b>新增方法</b></td><td>8 个（任务系统）</td><td>4 个 + 3 数据结构（后台执行）</td></tr>
+  <tr><td><b>核心痛点</b></td><td>大任务无依赖追踪</td><td>慢操作阻塞 Agent 空转</td></tr>
+</table>
+
+<div class="note">
+  <strong>s12 → s13 的关系:</strong> s12 提供任务依赖图（.tasks/ JSON 文件），s13 在此基础上增加后台执行能力。两个系统独立叠加：任务系统管工作的拆解与顺序，后台任务管慢操作的异步执行。Agent 认领一个任务 → 其中的 <code>npm install</code> 丢后台 → 继续认领下一个任务。
+</div>
+
+<h2>9. block 在 agent_loop 中的完整生命周期</h2>
+
+<p>每个 <code>block</code> 是 Anthropic API 返回的原生 <code>ContentBlock</code> 对象（<code>block.name</code> / <code>block.input</code> / <code>block.id</code>），从 LLM 返回到最终通知注入，经历 6 个阶段：</p>
+
+<div class="mermaid">
+flowchart TD
+    A["1. LLM 返回 response.content list of blocks"] --> B["2. 遍历: for block in response.content"]
+    B --> C{"3. block.type == tool_use?"}
+    C -->|"否"| B
+    C -->|"是"| D{"4. should_run_background block.name block.input?"}
+    D -->|"否 快操作"| E["同步: execute_tool block"]
+    E --> F["注入 tool_result 真实 output"]
+    D -->|"是 慢操作"| G["start_background_task block"]
+    G --> H["daemon 线程执行 execute_tool block"]
+    H --> I["注入 placeholder tool_result"]
+    F --> J["5. collect_background_results 收集已完成"]
+    I --> J
+    J --> K["6. 合并注入: user_content = tool_results + task_notifications"]
+    K --> L["messages.append user_content"]
+    L --> M["下一轮 LLM 调用时看到通知"]
+</div>
+
+<h3>通知给模型的方式</h3>
+
+<table>
+  <tr><th style="width:160px">路径</th><th>时机</th><th>格式</th><th>模型何时看到</th></tr>
+  <tr>
+    <td><b>同步结果</b></td>
+    <td>工具执行完立即</td>
+    <td><code>tool_result</code>（关联 tool_use_id）</td>
+    <td>下一轮 LLM 调用</td>
+  </tr>
+  <tr>
+    <td><b>后台 placeholder</b></td>
+    <td>start_background_task 后</td>
+    <td><code>tool_result</code>: "[Background task bg_0001 started]"</td>
+    <td>下一轮 LLM 调用（模型知道有任务在跑）</td>
+  </tr>
+  <tr>
+    <td><b>后台完成通知</b></td>
+    <td>collect_background_results 收集到已完成任务</td>
+    <td><code>&lt;task_notification&gt;</code> XML 文本块，追加到 user_content 末尾</td>
+    <td>下一条 user message 中（不关联任何 tool_use_id）</td>
+  </tr>
+</table>
+
+<div class="note">
+  <strong>为什么后台结果不用 tool_result？</strong> 因为 <code>tool_result</code> 必须关联一个 <code>tool_use_id</code>，而后台任务的 tool_use_id 在上轮已经用 placeholder 消耗掉了。后台完成通知以 <code>&lt;task_notification&gt;</code> 纯文本形式追加到 user message，模型在下一轮当作上下文读到。
+</div>
+
+<h3>代码对应（code.py 行 427-455）</h3>
+<table>
+  <tr><th>阶段</th><th>代码行</th><th>关键逻辑</th></tr>
+  <tr><td>遍历 block</td><td>428-430</td><td><code>for block in response.content: if block.type != "tool_use": continue</code></td></tr>
+  <tr><td>判断慢操作</td><td>433</td><td><code>if should_run_background(block.name, block.input):</code></td></tr>
+  <tr><td>后台分发</td><td>434-439</td><td><code>bg_id = start_background_task(block)</code> → 注入 placeholder tool_result</td></tr>
+  <tr><td>同步执行</td><td>440-445</td><td><code>output = execute_tool(block)</code> → 注入真实 tool_result</td></tr>
+  <tr><td>收集后台结果</td><td>449</td><td><code>bg_notifications = collect_background_results()</code></td></tr>
+  <tr><td>合并注入</td><td>448-455</td><td><code>user_content = list(results) + bg_notifications</code> → <code>messages.append</code></td></tr>
+</table>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

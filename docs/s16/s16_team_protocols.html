@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s16 Team Protocols 团队协议</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s16 Team Protocols 团队协议</h1>
+<p class="subtitle">结构化握手 · request-response 模式 · 类型校验</p>
+
+<h2>1. 两种协议</h2>
+<table>
+  <tr><th>协议</th><th>方向</th><th>用途</th><th>状态</th></tr>
+  <tr><td><b>shutdown</b></td><td>Lead → 队友</td><td>体面关机握手：Lead 发请求，队友收尾后确认</td><td>pending → approved</td></tr>
+  <tr><td><b>plan_approval</b></td><td>队友 → Lead</td><td>计划审批：队友提交高风险计划，Lead 审批后动手</td><td>pending → approved / rejected</td></tr>
+</table>
+
+<div class="note">
+  <strong>核心机制:</strong> 两种协议结构完全一样——一方发请求，另一方给回复，请求和回复通过 <code>request_id</code> 关联。有状态机追踪：pending → approved / rejected。
+</div>
+
+<h2>2. 整体架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph protocol["ProtocolState 请求状态追踪"]
+        direction LR
+        P1["request_id: 唯一关联键"]
+        P2["type: shutdown | plan_approval"]
+        P3["status: pending | approved | rejected"]
+        P4["sender / target / payload"]
+    end
+
+    subgraph dispatch["dispatch_message 消息路由"]
+        direction LR
+        D1["handle_inbox_message"]
+        D2["按 msg_type 分发"]
+        D3["shutdown_request → 回复 + 停止循环"]
+        D4["plan_approval_response → 注入审批结果"]
+    end
+
+    subgraph match["match_response 类型校验"]
+        direction LR
+        M1["按 request_id 找状态"]
+        M2["校验 response_type 匹配 request_type"]
+        M3["校验 status == pending 防重复"]
+        M4["更新 status: approved / rejected"]
+    end
+
+    protocol --> dispatch --> match
+</div>
+
+<h2>3. 四步协议流程 (以 shutdown 为例)</h2>
+<div class="mermaid">
+flowchart TD
+    A["1. Lead 发请求"] --> B["new_request_id → req_004281"]
+    B --> C["pending_requests[req_id] = ProtocolState shutdown pending"]
+    C --> D["BUS.send lead alice shutdown_request metadata request_id=req_id"]
+
+    D --> E["2. 队友收到 → dispatch"]
+    E --> F["inbox = BUS.read_inbox alice"]
+    F --> G["msg_type == shutdown_request"]
+    G --> H["路由到 handle_shutdown_request"]
+
+    H --> I["3. 队友回复"]
+    I --> J["BUS.send alice lead shutdown_response metadata request_id=req_id approve=true"]
+
+    J --> K["4. Lead 收响应 → match"]
+    K --> L["match_response shutdown_response req_id approve=true"]
+    L --> M["pending_requests[req_id].status = approved"]
+    M --> N["队友安全退出"]
+</div>
+
+<h2>4. ProtocolState 与消息路由</h2>
+<div class="mermaid">
+flowchart TD
+    subgraph state["ProtocolState dataclass"]
+        direction LR
+        S1["request_id: str"]
+        S2["type: shutdown | plan_approval"]
+        S3["sender / target"]
+        S4["status: pending | approved | rejected"]
+        S5["payload / created_at"]
+    end
+
+    subgraph routing["handle_inbox_message 路由"]
+        R1{"msg_type?"}
+        R1 -->|"shutdown_request"| R2["回复 shutdown_response + 返回 True 停止"]
+        R1 -->|"plan_approval_response"| R3["注入 [Plan approved] 或 [Plan rejected]"]
+        R1 -->|"普通消息"| R4["注入到 messages 继续"]
+    end
+
+    subgraph check["match_response 校验"]
+        C1["按 request_id 查找"] --> C2{"response_type 匹配?"}
+        C2 -->|"否"| C3["跳过 (类型不匹配)"]
+        C2 -->|"是"| C4{"status == pending?"}
+        C4 -->|"否"| C5["跳过 (已处理 防重复)"]
+        C4 -->|"是"| C6["更新 status"]
+    end
+</div>
+
+<h2>5. 关键类与方法速查</h2>
+<table>
+  <tr><th>类/方法</th><th>代码行</th><th>作用</th><th>调用时机</th></tr>
+  <tr><td><code>ProtocolState</code></td><td>~48</td><td>dataclass: request_id / type / sender / target / status / payload / created_at</td><td>发请求时创建记录</td></tr>
+  <tr><td><code>pending_requests</code></td><td>~58</td><td>dict: request_id → ProtocolState，追踪所有进行中的请求</td><td>发请求时写入，收回复时更新</td></tr>
+  <tr><td><code>new_request_id()</code></td><td>~60</td><td>生成唯一 request_id（如 req_004281）</td><td>发请求前</td></tr>
+  <tr><td><code>handle_inbox_message()</code></td><td>~96</td><td>按 msg_type 路由到对应处理器</td><td>队友/Lead 读取 inbox 后</td></tr>
+  <tr><td><code>match_response()</code></td><td>~119</td><td>按 request_id 匹配 + 类型校验 + 防重复</td><td>收到协议响应时</td></tr>
+  <tr><td><code>consume_lead_inbox()</code></td><td>~139</td><td>统一 inbox 消费：先路由协议消息，再返回剩余内容</td><td>check_inbox 工具 + 主循环末尾</td></tr>
+</table>
+
+<h2>6. 新增方法详解</h2>
+<p>s16 在 s15 基础上增加了 <strong>1 个 dataclass + 4 个方法 + 1 个字典</strong>，聚焦于结构化协议握手：</p>
+<table>
+  <tr><th>层次</th><th>方法/类型</th><th>作用</th></tr>
+  <tr><td><b>状态层</b></td><td><code>ProtocolState</code></td><td>dataclass 追踪每个请求的生命周期（request_id / type / status / sender / target / payload）</td></tr>
+  <tr><td><b>状态层</b></td><td><code>pending_requests</code></td><td>dict: request_id → ProtocolState，所有进行中的协议请求</td></tr>
+  <tr><td><b>路由层</b></td><td><code>handle_inbox_message()</code></td><td>按 msg_type 分发：shutdown_request → 回复并停止；plan_approval_response → 注入审批结果</td></tr>
+  <tr><td><b>路由层</b></td><td><code>consume_lead_inbox()</code></td><td>统一 inbox 消费入口：先路由协议消息更新状态，再返回剩余普通消息</td></tr>
+  <tr><td><b>校验层</b></td><td><code>match_response()</code></td><td>按 request_id 查找 → 校验 response_type 匹配 → 校验 status==pending → 更新状态</td></tr>
+  <tr><td><b>工具层</b></td><td><code>new_request_id()</code></td><td>生成唯一 ID（如 req_004281），贯穿全链路的关联键</td></tr>
+</table>
+
+<h2>7. 整体流程变化：s15 → s16</h2>
+
+<h3>s15 通信（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    A["Lead 发消息"] --> B["队友收消息"]
+    B --> C["队友回复"]
+    C --> D["Lead 收回复"]
+</div>
+
+<h3>s16 协议通信（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    A["Lead 发请求"] --> B["创建 ProtocolState pending"]
+    B --> C["BUS.send 带 request_id"]
+    C --> D["队友 handle_inbox_message 路由"]
+    D --> E["队友处理 + BUS.send 带 request_id"]
+    E --> F["Lead match_response 校验"]
+    F --> G["更新 ProtocolState approved/rejected"]
+</div>
+
+<h3>三个关键设计细节</h3>
+<table>
+  <tr><th style="width:180px">设计点</th><th>说明</th></tr>
+  <tr><td><b>request_id 贯穿全链路</b></td><td>请求带着 request_id 出去，回复带着 request_id 回来。ProtocolState 按 request_id 索引，保证请求和回复正确关联。</td></tr>
+  <tr><td><b>match_response 三重校验</b></td><td>① 按 request_id 查找状态；② 校验 response_type 匹配 request_type（shutdown_response 不会意外 approve plan_approval）；③ 校验 status==pending（防止重复处理）。</td></tr>
+  <tr><td><b>统一 inbox 消费</b></td><td>check_inbox 工具和主循环末尾都调用同一个 consume_lead_inbox()，先路由协议消息更新状态，再返回剩余内容。避免消息被读走但协议状态没更新。</td></tr>
+</table>
+
+<h2>8. s15 vs s16 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s15</th><th>s16</th></tr>
+  <tr><td><b>通信方式</b></td><td>自由消息（无结构）</td><td>结构化协议（request-response + request_id）</td></tr>
+  <tr><td><b>状态追踪</b></td><td>无</td><td>ProtocolState + pending_requests 字典</td></tr>
+  <tr><td><b>关机</b></td><td>直接杀线程</td><td>shutdown_request → 队友收尾 → shutdown_response 握手</td></tr>
+  <tr><td><b>审批</b></td><td>无</td><td>plan_approval_request → Lead 审批 → response</td></tr>
+  <tr><td><b>类型安全</b></td><td>无</td><td>match_response 校验 response_type 匹配 request_type</td></tr>
+  <tr><td><b>新增方法</b></td><td>MessageBus + spawn</td><td>ProtocolState + handle + match + consume</td></tr>
+  <tr><td><b>核心痛点</b></td><td>协调松散</td><td>缺少结构化握手和状态追踪</td></tr>
+</table>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

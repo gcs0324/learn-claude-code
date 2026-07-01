@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 950" font-family="Menlo, Monaco, monospace">
+  <defs><marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2563eb"/></marker></defs>
+  <rect width="1400" height="950" fill="#f8fafc" rx="8"/>
+  <rect x="0" y="0" width="1400" height="44" fill="#1e293b" rx="8"/>
+  <rect x="0" y="32" width="1400" height="12" fill="#1e293b"/>
+  <text x="700" y="28" fill="#e2e8f0" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">s16 Team Protocols · 结构化握手 + request-response 模式</text>
+  <rect x="30" y="60" width="307" height="26" fill="#64748b" rx="6"/>
+  <rect x="30" y="73" width="307" height="13" fill="#64748b"/>
+  <text x="183" y="78" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">1. 两种协议: shutdown + plan_approval</text>
+  <rect x="30" y="92" width="1340" height="163" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="309" y="102" width="206" height="143" fill="#fef2f2" rx="5" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="329" y="125" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">shutdown:</text>
+  <text x="329" y="142" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  Lead → 队友</text>
+  <text x="329" y="159" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  体面关机握手</text>
+  <text x="329" y="176" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  Lead 发请求 →</text>
+  <text x="329" y="193" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  队友收尾 → 确认</text>
+  <text x="329" y="210" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  pending → approved</text>
+  <rect x="545" y="102" width="278" height="143" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="565" y="125" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">plan_approval:</text>
+  <text x="565" y="142" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  队友 → Lead</text>
+  <text x="565" y="159" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  计划审批协议</text>
+  <text x="565" y="176" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  队友提交计划 →</text>
+  <text x="565" y="193" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  Lead 审批 → 动手</text>
+  <text x="565" y="210" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  pending → approved/rejected</text>
+  <rect x="853" y="102" width="238" height="143" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="873" y="125" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">共同机制:</text>
+  <text x="873" y="142" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="873" y="159" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· request_id 贯穿全链路</text>
+  <text x="873" y="176" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· ProtocolState 追踪状态</text>
+  <text x="873" y="193" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· dispatch_message 路由</text>
+  <text x="873" y="210" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· match_response 校验</text>
+  <text x="873" y="227" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· pending_requests 字典</text>
+  <line x1="700" y1="265" x2="700" y2="281" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="287" width="292" height="26" fill="#2563eb" rx="6"/>
+  <rect x="30" y="300" width="292" height="13" fill="#2563eb"/>
+  <text x="176" y="305" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">2. ProtocolState + dispatch + match</text>
+  <rect x="30" y="319" width="1340" height="282" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="328" y="329" width="223" height="262" fill="#0f172a" rx="5"/>
+  <text x="348" y="352" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">ProtocolState:</text>
+  <text x="348" y="369" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  request_id: str</text>
+  <text x="348" y="386" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  type: shutdown|plan</text>
+  <text x="348" y="403" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  sender / target</text>
+  <text x="348" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  status: pending|</text>
+  <text x="348" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    approved|rejected</text>
+  <text x="348" y="454" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  payload / created_at</text>
+  <text x="348" y="471" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="348" y="488" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">pending_requests:</text>
+  <text x="348" y="505" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  dict[request_id]</text>
+  <rect x="582" y="329" width="230" height="262" fill="#faf5ff" rx="5" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="602" y="352" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">dispatch_message:</text>
+  <text x="602" y="369" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="602" y="386" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">handle_inbox_message</text>
+  <text x="602" y="403" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  按 msg_type 分发:</text>
+  <text x="602" y="420" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="602" y="437" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">shutdown_request:</text>
+  <text x="602" y="454" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  → 回复 + 停止循环</text>
+  <text x="602" y="471" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="602" y="488" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">plan_approval_response:</text>
+  <text x="602" y="505" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  → 注入 [Approved]</text>
+  <text x="602" y="522" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  或 [Rejected]</text>
+  <text x="602" y="539" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="602" y="556" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">普通消息:</text>
+  <text x="602" y="573" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  → 注入 messages</text>
+  <rect x="842" y="329" width="230" height="262" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="862" y="352" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">match_response:</text>
+  <text x="862" y="369" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="862" y="386" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">1. 按 request_id 查找</text>
+  <text x="862" y="403" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">2. 校验 response_type</text>
+  <text x="862" y="420" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">   匹配 request_type</text>
+  <text x="862" y="437" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">3. 校验 status==pending</text>
+  <text x="862" y="454" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">   防止重复处理</text>
+  <text x="862" y="471" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">4. 更新 status:</text>
+  <text x="862" y="488" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">   approved / rejected</text>
+  <line x1="700" y1="611" x2="700" y2="627" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="633" width="278" height="26" fill="#7c3aed" rx="6"/>
+  <rect x="30" y="646" width="278" height="13" fill="#7c3aed"/>
+  <text x="169" y="651" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">3. 四步协议流程 + 统一 inbox 消费</text>
+  <rect x="30" y="665" width="1340" height="41" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="108" y="665" width="223" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="128" y="688" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">1.Lead 发请求+创建状态</text>
+  <rect x="361" y="665" width="214" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="381" y="688" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">2.队友 inbox dispatch</text>
+  <rect x="605" y="665" width="223" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="625" y="688" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">3.队友 回复+request_id</text>
+  <rect x="858" y="665" width="214" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="878" y="688" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">4.Lead match_response</text>
+  <rect x="1102" y="665" width="190" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="1122" y="688" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">consume_lead_inbox</text>
+  <rect x="30" y="721" width="1340" height="180" fill="#1e293b" rx="8"/>
+  <text x="700" y="756" fill="#fbbf24" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">request_id 贯穿全链路 · 三重校验 · 统一 inbox 消费</text>
+  <rect x="80" y="786" width="372" height="132" fill="#334155" rx="6"/>
+  <text x="100" y="814" fill="#93c5fd" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">核心概念:</text>
+  <text x="100" y="836" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="858" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">request_id: 请求带着出去, 回复带着回来</text>
+  <text x="100" y="880" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">ProtocolState: 追踪每个请求的完整生命周期</text>
+  <text x="100" y="902" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">match_response: 类型校验 + 防重复处理</text>
+  <text x="100" y="924" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">consume_lead_inbox: 先协议后消息, 避免状态遗漏</text>
+</svg>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s12 Task System 任务系统</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s12 Task System 任务系统</h1>
+<p class="subtitle">文件持久化 · blockedBy 依赖图 · 跨会话可恢复</p>
+
+<h2>1. TodoWrite vs Task System</h2>
+<table>
+  <tr><th></th><th>TodoWrite (s05)</th><th>Task System (s12)</th></tr>
+  <tr><td><b>定位</b></td><td>当前任务的执行清单</td><td>可恢复的任务系统</td></tr>
+  <tr><td><b>存储</b></td><td>进程内 / 会话状态</td><td><code>.tasks/{id}.json</code></td></tr>
+  <tr><td><b>依赖</b></td><td>无</td><td><code>blockedBy</code> / <code>blocks</code> 依赖图</td></tr>
+  <tr><td><b>生命周期</b></td><td>当前会话 / 当前任务</td><td>跨会话保留</td></tr>
+  <tr><td><b>分工</b></td><td>不负责任务认领</td><td><code>owner</code> / claim</td></tr>
+  <tr><td><b>状态</b></td><td>pending / in_progress / completed</td><td>pending / in_progress / completed</td></tr>
+  <tr><td><b>粒度</b></td><td>Agent 自己的步骤</td><td>可被认领、追踪、解锁的任务</td></tr>
+</table>
+
+<div class="note">
+  <strong>核心区别:</strong> TodoWrite 是会话内存中的临时清单，s12 的 Task System 是持久化到 <code>.tasks/</code> 目录的任务图。跨会话时，<code>.tasks/</code> 目录还在，Agent 读文件就能恢复进度。
+</div>
+
+<h2>2. 整体架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph storage["存储层 (.tasks/)"]
+        direction LR
+        T1["task_001.json<br/>status: completed"]
+        T2["task_002.json<br/>status: in_progress<br/>blockedBy: [task_001]"]
+        T3["task_003.json<br/>status: pending<br/>blockedBy: [task_002]"]
+    end
+
+    subgraph dataclass["Task 数据结构"]
+        direction LR
+        D1["id: str"]
+        D2["subject: str"]
+        D3["description: str"]
+        D4["status: pending | in_progress | completed"]
+        D5["owner: str | None"]
+        D6["blockedBy: list[str]"]
+    end
+
+    subgraph tools["5 个任务工具"]
+        direction LR
+        TL1["create_task"]
+        TL2["list_tasks"]
+        TL3["get_task"]
+        TL4["claim_task"]
+        TL5["complete_task"]
+    end
+
+    subgraph state["状态机"]
+        direction LR
+        S1["pending"] -->|"claim"| S2["in_progress"]
+        S2 -->|"complete"| S3["completed"]
+    end
+
+    storage --> dataclass --> tools --> state
+</div>
+
+<h2>3. 任务依赖图 (DAG)</h2>
+<div class="mermaid">
+flowchart TD
+    schema["setup database schema<br/>status: pending<br/>blockedBy: none"]
+    endpoints["create API endpoints<br/>status: pending<br/>blockedBy: [schema]"]
+    tests["write tests<br/>status: pending<br/>blockedBy: [endpoints]"]
+    docs["write docs<br/>status: pending<br/>blockedBy: [schema]"]
+
+    schema --> endpoints
+    schema --> docs
+    endpoints --> tests
+</div>
+
+<h2>4. 创建与认领流程 (时序图)</h2>
+<div class="mermaid">
+sequenceDiagram
+    participant A as Agent
+    participant C as CreateTask
+    participant F as TasksDir
+    participant L as ClaimTask
+    participant S as CanStart
+    participant D as CompleteTask
+
+    Note over A,F: 创建阶段
+    A->>C: createTask 搭数据库 schema
+    C->>F: 写入 task001 json status pending
+    C-->>A: task001
+
+    A->>C: createTask API endpoints blockedBy task001
+    C->>F: 写入 task002 json status pending
+    C-->>A: task002
+
+    A->>C: createTask 写测试 blockedBy task002
+    C->>F: 写入 task003 json status pending
+
+    Note over A,D: 认领与执行
+    A->>L: claimTask task001
+    L->>S: canStart task001
+    S-->>L: true 无依赖
+    L->>F: 更新 task001 status inProgress owner agent
+    L-->>A: Claimed
+
+    A->>D: completeTask task001
+    D->>F: 更新 task001 status completed
+    D->>S: 扫描被解锁的下游任务
+    S-->>D: task002 已解锁
+    D-->>A: Completed Unblocked API endpoints
+
+    A->>L: claimTask task002
+    L->>S: canStart task002
+    S-->>L: true task001 已完成
+    L->>F: 更新 task002 status inProgress
+    L-->>A: Claimed
+
+    A->>D: completeTask task002
+    D->>F: 更新 task002 status completed
+    D-->>A: Completed Unblocked 写测试
+</div>
+
+<h2>5. can_start 依赖检查</h2>
+<div class="mermaid">
+flowchart TD
+    A["can_start(task_id)"] --> B{"blockedBy 列表"}
+    B -->|"空列表"| C["返回 true (无依赖)"]
+    B -->|"有依赖"| D["遍历每个 dep_id"]
+    D --> E{"dep_id 文件存在?"}
+    E -->|"否"| F["返回 false (缺失依赖 = blocked)"]
+    E -->|"是"| G{"dep.status == completed?"}
+    G -->|"否"| F
+    G -->|"是"| H{"还有更多依赖?"}
+    H -->|"是"| D
+    H -->|"否"| I["返回 true (全部完成)"]
+</div>
+
+<h2>6. 关键函数速查</h2>
+<table>
+  <tr><th>函数</th><th>代码行</th><th>作用</th><th>调用时机</th></tr>
+  <tr><td><code>create_task()</code></td><td>66</td><td>创建任务 + 写入 .tasks/{id}.json</td><td>Agent 调用 create_task 工具</td></tr>
+  <tr><td><code>save_task()</code></td><td>80</td><td>序列化 Task dataclass 为 JSON 文件</td><td>create / claim / complete 后</td></tr>
+  <tr><td><code>load_task()</code></td><td>84</td><td>从 JSON 文件反序列化 Task</td><td>can_start / claim / complete / get</td></tr>
+  <tr><td><code>list_tasks()</code></td><td>88</td><td>扫描 .tasks/ 目录，返回所有任务列表</td><td>Agent 调用 list_tasks 工具</td></tr>
+  <tr><td><code>get_task()</code></td><td>93</td><td>返回单个任务的完整 JSON 细节</td><td>Agent 调用 get_task 工具</td></tr>
+  <tr><td><code>can_start()</code></td><td>99</td><td>检查 blockedBy 是否全部 completed</td><td>claim_task 前置检查</td></tr>
+  <tr><td><code>claim_task()</code></td><td>111</td><td>设置 owner + pending→in_progress</td><td>Agent 认领任务时</td></tr>
+  <tr><td><code>complete_task()</code></td><td>126</td><td>设置 completed + 报告解锁的下游任务</td><td>Agent 完成任务时</td></tr>
+</table>
+
+<h2>7. 新增方法详解</h2>
+
+<p>s12 在 s10-s11 基础上增加了 <strong>8 个方法 + 1 个 dataclass + 1 个目录</strong>，聚焦于文件持久化的任务依赖图：</p>
+
+<table>
+  <tr><th>层次</th><th>方法/类型</th><th>代码行</th><th>作用</th><th>触发时机</th></tr>
+  <tr>
+    <td><b>数据结构</b></td>
+    <td><code>Task dataclass</code></td><td>52</td><td>id / subject / description / status / owner / blockedBy 六个字段</td><td>所有任务操作的基础类型</td>
+  </tr>
+  <tr>
+    <td><b>存储目录</b></td>
+    <td><code>TASKS_DIR</code></td><td>48</td><td>.tasks/ 目录，每个任务一个 {id}.json 文件</td><td>程序启动时创建</td>
+  </tr>
+  <tr>
+    <td rowspan="4"><b>CRUD 层</b></td>
+    <td><code>create_task()</code></td><td>66</td><td>创建 Task + 自动 save 到 .tasks/{id}.json</td><td>Agent 调用 create_task 工具</td>
+  </tr>
+  <tr>
+    <td><code>save_task()</code></td><td>80</td><td>Task dataclass → JSON 文件序列化</td><td>create / claim / complete 后自动调用</td>
+  </tr>
+  <tr>
+    <td><code>load_task()</code></td><td>84</td><td>JSON 文件 → Task dataclass 反序列化</td><td>can_start / claim / complete / get 时</td>
+  </tr>
+  <tr>
+    <td><code>list_tasks()</code></td><td>88</td><td>扫描 .tasks/task_*.json，返回所有任务</td><td>Agent 调用 list_tasks 工具</td>
+  </tr>
+  <tr>
+    <td rowspan="3"><b>状态机层</b></td>
+    <td><code>can_start()</code></td><td>99</td><td>检查 blockedBy 全部 completed；缺失依赖视为 blocked</td><td>claim_task 前置检查</td>
+  </tr>
+  <tr>
+    <td><code>claim_task()</code></td><td>111</td><td>状态检查 + can_start + 设置 owner + pending→in_progress</td><td>Agent 认领任务时</td>
+  </tr>
+  <tr>
+    <td><code>complete_task()</code></td><td>126</td><td>in_progress→completed + 扫描并报告被解锁的下游任务</td><td>Agent 完成任务时</td>
+  </tr>
+</table>
+
+<h2>8. 整体流程变化：s11 → s12</h2>
+
+<h3>s11 流程（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    U1["用户输入"] --> L1["LLM 调用"]
+    L1 --> T1["bash read_file write_file"]
+    T1 --> D1["结束"]
+</div>
+
+<h3>s12 流程（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    subgraph begin["每轮开始"]
+        direction LR
+        B1["get_system_prompt context"] --> B2["tools 含 5 个任务工具"]
+    end
+
+    subgraph task_ops["任务操作"]
+        direction LR
+        O1["create_task 创建任务 + 声明依赖"]
+        O2["list_tasks 查看全局状态"]
+        O3["claim_task 认领 + can_start 检查"]
+        O4["complete_task 完成 + 解锁下游"]
+        O1 --> O3 --> O4
+        O2 --> O3
+    end
+
+    subgraph llm["LLM 调用"]
+        L1["system + messages + 8 个 tools"]
+    end
+
+    subgraph state["状态机流转"]
+        direction LR
+        S1["pending"] -->|"claim_task"| S2["in_progress"]
+        S2 -->|"complete_task"| S3["completed"]
+    end
+
+    subgraph persist["持久化"]
+        P1[".tasks 目录下 JSON 文件跨会话保留"]
+    end
+
+    begin --> llm --> task_ops --> state --> persist
+    persist -.->|"下次会话恢复"| begin
+</div>
+
+<h3>三个关键设计细节</h3>
+
+<table>
+  <tr><th style="width:180px">设计点</th><th>说明</th></tr>
+  <tr>
+    <td><b>文件持久化</b></td>
+    <td>
+      每个任务一个 <code>.tasks/{id}.json</code> 文件。create / claim / complete 都实时写盘。<br/>
+      跨会话时，Agent 调 <code>list_tasks</code> 扫描目录即可恢复全部进度，无需内存状态。
+    </td>
+  </tr>
+  <tr>
+    <td><b>blockedBy 依赖检查</b></td>
+    <td>
+      <code>can_start</code> 是 claim 的前置条件：blockedBy 全部 completed 才允许认领。<br/>
+      缺失的依赖文件视为 blocked（不存在的 ID = 不能开始），避免引用错误 ID 时崩溃。
+    </td>
+  </tr>
+  <tr>
+    <td><b>complete 自动解锁下游</b></td>
+    <td>
+      <code>complete_task</code> 完成后扫描所有 pending 任务，找出 <code>can_start</code> 变为 true 的下游任务并报告。<br/>
+      Agent 不需要手动追踪"谁依赖了我"，系统自动通知。
+    </td>
+  </tr>
+</table>
+
+<h2>9. s11 vs s12 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s11</th><th>s12</th></tr>
+  <tr><td><b>任务管理</b></td><td>无</td><td>Task dataclass + 8 个方法 + 5 个工具</td></tr>
+  <tr><td><b>存储</b></td><td>无持久化</td><td>.tasks/{id}.json 跨会话</td></tr>
+  <tr><td><b>依赖</b></td><td>无</td><td>blockedBy 图 + can_start 检查</td></tr>
+  <tr><td><b>工具数量</b></td><td>bash, read_file, write_file (3)</td><td>+ create_task, list_tasks, get_task, claim_task, complete_task (8)</td></tr>
+  <tr><td><b>状态机</b></td><td>无</td><td>pending → in_progress → completed</td></tr>
+  <tr><td><b>认领机制</b></td><td>无</td><td>claim_task + owner 字段</td></tr>
+  <tr><td><b>解锁通知</b></td><td>无</td><td>complete_task 自动报告 unblocked 下游</td></tr>
+</table>
+
+<div class="note">
+  <strong>s10 → s12 的关系:</strong> s10 提供 prompt 组装（PROMPT_SECTIONS + 缓存），s12 在此基础上扩展工具列表（+5 个任务工具）并新增 .tasks/ 持久化目录。两个系统独立叠加：prompt 组装管 system prompt 的构建时机，任务系统管工作的拆解与追踪。
+</div>
+
+<h2>10. 状态机详解</h2>
+<div class="mermaid">
+stateDiagram-v2
+    [*] --> pending: create_task
+    pending --> in_progress: claim_task (can_start 检查通过)
+    in_progress --> completed: complete_task (解锁下游)
+    completed --> [*]
+
+    note right of pending: blockedBy 未全部完成时<br/>can_start 返回 false<br/>claim_task 被拒绝
+    note right of in_progress: owner 已设置<br/>防止重复认领
+    note right of completed: 扫描所有 pending 任务<br/>报告被解锁的下游
+</div>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

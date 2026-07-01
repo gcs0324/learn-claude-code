@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s19 MCP Plugin 外部工具接入</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s19 MCP Plugin 外部工具接入</h1>
+<p class="subtitle">MCPClient 发现调用 · 命名空间隔离 · 动态工具池组装</p>
+
+<h2>1. 问题：手写工具的瓶颈</h2>
+<div class="note">
+  <strong>痛点:</strong> s01-s18 的所有工具都是手写的——bash、read、write、task、worktree。现在你有 Jira API、部署系统、Notion 知识库 3 个外部服务要接入。你不想为每个服务重写一套工具代码。你需要一个标准协议——外部服务只要实现它，Agent 就能直接调用，不管服务用什么语言写的。
+</div>
+
+<h2>2. 手写工具 vs MCP 协议</h2>
+<table>
+  <tr><th></th><th>手写工具 (s18)</th><th>MCP 协议 (s19)</th></tr>
+  <tr><td><b>工具来源</b></td><td>全部手写 builtin</td><td>手写 + MCP 外部工具动态发现</td></tr>
+  <tr><td><b>扩展方式</b></td><td>写代码加工具</td><td>标准协议，任意语言实现 server</td></tr>
+  <tr><td><b>工具池</b></td><td>固定 BUILTIN_TOOLS</td><td>assemble_tool_pool 动态组装</td></tr>
+  <tr><td><b>命名空间</b></td><td>无冲突风险</td><td>mcp__server__tool 避免冲突</td></tr>
+</table>
+
+<h2>3. 整体架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph agent["Agent 端"]
+        direction LR
+        A1["connect_mcp 工具"]
+        A2["assemble_tool_pool 组装"]
+        A3["agent_loop 使用动态池"]
+    end
+
+    subgraph clients["MCPClient 层"]
+        direction LR
+        C1["MCPClient docs"]
+        C2["MCPClient deploy"]
+        C3["MCPClient jira"]
+    end
+
+    subgraph servers["MCP Server 层 (mock)"]
+        direction LR
+        S1["docs: search / get_version"]
+        S2["deploy: trigger / status"]
+        S3["jira: search_issues / create_ticket"]
+    end
+
+    agent -->|"discover + call"| clients -->|"tools/list + tools/call"| servers
+</div>
+
+<h2>4. connect_mcp → 工具发现 → 组装流程</h2>
+<div class="mermaid">
+flowchart TD
+    A["用户: connect_mcp docs"] --> B["检查 mcp_clients 字典"]
+    B --> C{"已连接?"}
+    C -->|"是"| D["返回已连接提示"]
+    C -->|"否"| E["查 MOCK_SERVERS 工厂"]
+    E --> F{"server 存在?"}
+    F -->|"否"| G["返回可用 server 列表"]
+    F -->|"是"| H["factory() 创建 MCPClient"]
+    H --> I["MCPClient.register tool_defs + handlers"]
+    I --> J["mcp_clients[name] = client"]
+    J --> K["agent_loop 下一轮:"]
+    K --> L["assemble_tool_pool 重建"]
+    L --> M["BUILTIN_TOOLS + mcp__docs__search + mcp__docs__get_version"]
+</div>
+
+<h2>5. 关键类与方法速查</h2>
+<table>
+  <tr><th>类/方法</th><th>代码行</th><th>作用</th><th>调用时机</th></tr>
+  <tr><td><code>MCPClient</code></td><td>~660</td><td>Agent 端客户端：模拟 tools/list 发现 + tools/call 调用</td><td>connect_mcp 时创建</td></tr>
+  <tr><td><code>mcp_clients</code></td><td>~683</td><td>dict: server_name → MCPClient，所有已连接的 server</td><td>全局状态</td></tr>
+  <tr><td><code>connect_mcp()</code></td><td>~739</td><td>连接 MCP server → 发现工具 → 加入 mcp_clients</td><td>用户调用 connect_mcp 工具时</td></tr>
+  <tr><td><code>normalize_mcp_name()</code></td><td>~688</td><td>名称规范化：非 [a-zA-Z0-9_-] 字符替换为 _</td><td>组装工具池时</td></tr>
+  <tr><td><code>assemble_tool_pool()</code></td><td>~754</td><td>BUILTIN_TOOLS + 所有 MCP 工具 → 统一工具池</td><td>agent_loop 每轮开始时</td></tr>
+  <tr><td><code>MOCK_SERVERS</code></td><td>~733</td><td>dict: server_name → factory 函数，模拟外部 server</td><td>connect_mcp 查表</td></tr>
+</table>
+
+<h2>6. 新增方法详解</h2>
+<p>s19 在 s18 基础上增加了 <strong>1 个类 + 2 个方法 + 2 个数据结构</strong>，聚焦于外部工具接入：</p>
+<table>
+  <tr><th>层次</th><th>方法/类型</th><th>作用</th></tr>
+  <tr><td><b>客户端层</b></td><td><code>MCPClient</code></td><td>封装 tools/list 发现和 tools/call 调用。教学版用 Python 函数模拟 server；真实版通过 stdio JSON-RPC 与子进程通信</td></tr>
+  <tr><td><b>连接层</b></td><td><code>connect_mcp()</code></td><td>查 MOCK_SERVERS → 创建 MCPClient → 注册工具和 handler → 存入 mcp_clients</td></tr>
+  <tr><td><b>安全层</b></td><td><code>normalize_mcp_name()</code></td><td>所有非 [a-zA-Z0-9_-] 字符替换为 _，防止特殊字符导致命名冲突或注入</td></tr>
+  <tr><td><b>组装层</b></td><td><code>assemble_tool_pool()</code></td><td>每轮重建工具池：BUILTIN_TOOLS + 所有 mcp_clients 的工具，前缀 mcp__server__tool</td></tr>
+  <tr><td><b>数据层</b></td><td><code>mcp_clients</code></td><td>全局 dict 追踪所有已连接的 MCP server</td></tr>
+  <tr><td><b>数据层</b></td><td><code>MOCK_SERVERS</code></td><td>预注册的 mock server 工厂，模拟真实外部服务</td></tr>
+</table>
+
+<h2>7. 整体流程变化：s18 → s19</h2>
+
+<h3>s18 工具池（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    A["固定 BUILTIN_TOOLS"] --> B["agent_loop 使用固定池"]
+</div>
+
+<h3>s19 工具池（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    A["用户: connect_mcp docs"] --> B["MCPClient 创建 + 工具发现"]
+    B --> C["mcp_clients[docs] = client"]
+    C --> D["agent_loop 下一轮"]
+    D --> E["assemble_tool_pool: BUILTIN + mcp__docs__search + mcp__docs__get_version"]
+    E --> F["LLM 看到 19 个工具（17 内置 + 2 MCP）"]
+    F --> G["LLM 调用 mcp__docs__search"]
+    G --> H["MCPClient.call_tool → handler → 返回结果"]
+</div>
+
+<h3>三个关键设计细节</h3>
+<table>
+  <tr><th style="width:180px">设计点</th><th>说明</th></tr>
+  <tr><td><b>无 prompt 缓存</b></td><td>s10-s18 用 prompt cache 避免重复序列化。s19 去掉缓存——connect_mcp 后工具池变了，缓存中的工具列表是旧的，继续用会导致模型调用不到新工具。每轮 assemble_tool_pool 重建。</td></tr>
+  <tr><td><b>mcp__server__tool 命名</b></td><td>所有 MCP 工具加 mcp__{server}__{tool} 前缀，经过 normalize_mcp_name 规范化。不同 server 的同名工具不会冲突。</td></tr>
+  <tr><td><b>MCP 工具仅 Lead 可用</b></td><td>教学版中 connect_mcp 是 Lead 工具，assemble_tool_pool 也只服务于 Lead 的 agent_loop。Teammate 仍用固定的 8 个子集工具。真实 CC 中子 agent 继承父级 MCP 配置。</td></tr>
+</table>
+
+<h2>8. 真实 CC 的 MCP 实现 vs 教学版</h2>
+<table>
+  <tr><th>维度</th><th>教学版 s19</th><th>真实 CC</th></tr>
+  <tr><td><b>Transport</b></td><td>1 种（mock stdio）</td><td>6 种：stdio / sse / http / ws / sse-ide / sdk</td></tr>
+  <tr><td><b>认证</b></td><td>无</td><td>OAuth 2.0 + PKCE，令牌持久化到 Keychain</td></tr>
+  <tr><td><b>Channel 通知</b></td><td>省略（Agent 是主动方）</td><td>Server 可反向推消息给 Agent</td></tr>
+  <tr><td><b>配置优先级</b></td><td>直接传 server name</td><td>claude.ai < plugin < settings.json < .mcp.json < settings.local.json</td></tr>
+  <tr><td><b>错误处理</b></td><td>try/except 兜底</td><td>ECONNRESET/ETIMEDOUT/401 等精细分类 + 重试策略</td></tr>
+  <tr><td><b>权限</b></td><td>description 标注 (readOnly)/(destructive)</td><td>独立权限系统，根据 tool annotations 判断</td></tr>
+  <tr><td><b>子 agent 继承</b></td><td>MCP 工具仅 Lead</td><td>子 agent 继承父级 MCP 配置</td></tr>
+</table>
+
+<h2>9. s18 vs s19 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s18</th><th>s19</th></tr>
+  <tr><td><b>工具来源</b></td><td>全部手写 builtin</td><td>手写 + MCP 外部工具动态发现</td></tr>
+  <tr><td><b>工具池</b></td><td>固定 BUILTIN_TOOLS</td><td>assemble_tool_pool 动态组装 mcp__ 前缀工具</td></tr>
+  <tr><td><b>名称安全</b></td><td>无</td><td>normalize_mcp_name 规范化</td></tr>
+  <tr><td><b>新类型</b></td><td>—</td><td>MCPClient 类（模拟 tools/list + tools/call）</td></tr>
+  <tr><td><b>命名空间</b></td><td>—</td><td>mcp__server__tool 避免冲突</td></tr>
+  <tr><td><b>工具描述</b></td><td>无标注</td><td>(readOnly)/(destructive) 标注</td></tr>
+  <tr><td><b>prompt 缓存</b></td><td>有（s10 起）</td><td>去掉——工具池动态变化后缓存失效</td></tr>
+  <tr><td><b>Lead 工具数</b></td><td>17</td><td>18 (+connect_mcp)</td></tr>
+  <tr><td><b>扩展方式</b></td><td>写代码加工具</td><td>标准协议，任意语言实现 server</td></tr>
+  <tr><td><b>核心痛点</b></td><td>外部服务接入要手写工具</td><td>标准协议一次实现，所有 server 复用</td></tr>
+</table>
+
+<div class="note">
+  <strong>s18 → s19 的关系:</strong> s15-s18 解决了团队协作的完整链路（通信 → 协议 → 自治 → 隔离）。s19 在团队之上加了外部能力接入——Agent 不再只能用手写工具，可以通过 MCP 标准协议接入任意外部服务。工具池从静态变为动态。
+</div>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

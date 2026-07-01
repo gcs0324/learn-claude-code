@@ -1,0 +1,233 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1250" font-family="Menlo, Monaco, monospace">
+  <defs><marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2563eb"/></marker></defs>
+  <rect width="1400" height="1250" fill="#f8fafc" rx="8"/>
+  <rect x="0" y="0" width="1400" height="44" fill="#1e293b" rx="8"/>
+  <rect x="0" y="32" width="1400" height="12" fill="#1e293b"/>
+  <text x="700" y="28" fill="#e2e8f0" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">s12 Task System · 文件持久化的任务依赖图</text>
+  <rect x="30" y="60" width="220" height="26" fill="#64748b" rx="6"/>
+  <rect x="30" y="73" width="220" height="13" fill="#64748b"/>
+  <text x="140" y="78" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">1. 问题: TodoWrite 不够用</text>
+  <rect x="30" y="92" width="1340" height="180" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="344" y="102" width="199" height="160" fill="#0f172a" rx="5"/>
+  <text x="364" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">TodoWrite (s05):</text>
+  <text x="364" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="364" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 会话内存中的清单</text>
+  <text x="364" y="176" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 无依赖关系</text>
+  <text x="364" y="193" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 无 owner 认领</text>
+  <text x="364" y="210" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 会话结束即丢失</text>
+  <text x="364" y="227" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 不能跨 Agent 协作</text>
+  <rect x="574" y="102" width="246" height="160" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="594" y="125" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">Task System (s12):</text>
+  <text x="594" y="142" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="594" y="159" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· .tasks/{id}.json 持久化</text>
+  <text x="594" y="176" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· blockedBy 依赖图</text>
+  <text x="594" y="193" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· owner 字段 + claim</text>
+  <text x="594" y="210" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 跨会话保留进度</text>
+  <text x="594" y="227" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 多 Agent 可协作</text>
+  <rect x="850" y="102" width="206" height="160" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="870" y="125" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">核心区别:</text>
+  <text x="870" y="142" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="870" y="159" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">TodoWrite = 执行清单</text>
+  <text x="870" y="176" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  当前任务, 会话内</text>
+  <text x="870" y="193" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="870" y="210" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">Task = 任务系统</text>
+  <text x="870" y="227" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  可恢复, 跨会话</text>
+  <text x="870" y="244" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  大目标拆小任务</text>
+  <line x1="700" y1="282" x2="700" y2="298" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="304" width="206" height="26" fill="#2563eb" rx="6"/>
+  <rect x="30" y="317" width="206" height="13" fill="#2563eb"/>
+  <text x="133" y="322" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">2. Task 数据结构 + 存储</text>
+  <rect x="30" y="336" width="1340" height="248" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="222" y="346" width="325" height="228" fill="#0f172a" rx="5"/>
+  <text x="242" y="369" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">@dataclass</text>
+  <text x="242" y="386" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">class Task:</text>
+  <text x="242" y="403" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  id: str</text>
+  <text x="242" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  subject: str</text>
+  <text x="242" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  description: str</text>
+  <text x="242" y="454" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  status: str</text>
+  <text x="242" y="471" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    # pending|in_progress|completed</text>
+  <text x="242" y="488" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  owner: str | None</text>
+  <text x="242" y="505" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  blockedBy: list[str]</text>
+  <text x="242" y="522" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="242" y="539" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">TASKS_DIR = .tasks/</text>
+  <text x="242" y="556" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"># .tasks/{id}.json</text>
+  <rect x="576" y="346" width="270" height="228" fill="#1e293b" rx="5"/>
+  <text x="596" y="369" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">.tasks/ 目录结构:</text>
+  <text x="596" y="386" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="596" y="403" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">task_001.json →</text>
+  <text x="596" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  {"id":"task_001",</text>
+  <text x="596" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">   "subject":"setup schema",</text>
+  <text x="596" y="454" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">   "status":"completed",</text>
+  <text x="596" y="471" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">   "owner":"agent",</text>
+  <text x="596" y="488" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">   "blockedBy":[]}</text>
+  <text x="596" y="505" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="596" y="522" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">task_002.json →</text>
+  <text x="596" y="539" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  {"subject":"create API",</text>
+  <text x="596" y="556" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">   "blockedBy":["task_001"]}</text>
+  <rect x="876" y="346" width="302" height="228" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="896" y="369" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">文件持久化:</text>
+  <text x="896" y="386" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="896" y="403" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">· 每个任务一个 JSON 文件</text>
+  <text x="896" y="420" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">· create/claim/complete 实时写盘</text>
+  <text x="896" y="437" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">· 跨会话: list_tasks 扫描目录</text>
+  <text x="896" y="454" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  即可恢复全部进度</text>
+  <text x="896" y="471" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">· ID: timestamp + random hex</text>
+  <text x="896" y="488" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  简单但够用</text>
+  <line x1="700" y1="594" x2="700" y2="610" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="616" width="336" height="26" fill="#7c3aed" rx="6"/>
+  <rect x="30" y="629" width="336" height="13" fill="#7c3aed"/>
+  <text x="198" y="634" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">3. 核心操作: can_start + claim + complete</text>
+  <rect x="30" y="648" width="1340" height="231" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="210" y="658" width="357" height="211" fill="#0f172a" rx="5"/>
+  <text x="230" y="681" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def can_start(task_id):</text>
+  <text x="230" y="698" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  task = load_task(task_id)</text>
+  <text x="230" y="715" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  for dep_id in task.blockedBy:</text>
+  <text x="230" y="732" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    if not _task_path(dep_id).exists():</text>
+  <text x="230" y="749" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      return False  # 缺失=blocked</text>
+  <text x="230" y="766" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    if load_task(dep_id).status</text>
+  <text x="230" y="783" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">       != "completed":</text>
+  <text x="230" y="800" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      return False</text>
+  <text x="230" y="817" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return True</text>
+  <rect x="596" y="658" width="294" height="211" fill="#faf5ff" rx="5" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="616" y="681" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">def claim_task(task_id, owner):</text>
+  <text x="616" y="698" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  task = load_task(task_id)</text>
+  <text x="616" y="715" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  if task.status != "pending":</text>
+  <text x="616" y="732" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">    return "cannot claim"</text>
+  <text x="616" y="749" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  if not can_start(task_id):</text>
+  <text x="616" y="766" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">    return "Blocked by: ..."</text>
+  <text x="616" y="783" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  task.owner = owner</text>
+  <text x="616" y="800" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  task.status = "in_progress"</text>
+  <text x="616" y="817" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  save_task(task)</text>
+  <rect x="920" y="658" width="270" height="211" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="940" y="681" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">def complete_task(task_id):</text>
+  <text x="940" y="698" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  task = load_task(task_id)</text>
+  <text x="940" y="715" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  task.status = "completed"</text>
+  <text x="940" y="732" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  save_task(task)</text>
+  <text x="940" y="749" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  # 扫描被解锁的下游</text>
+  <text x="940" y="766" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  unblocked = [t.subject</text>
+  <text x="940" y="783" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    for t in list_tasks()</text>
+  <text x="940" y="800" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    if t.status == "pending"</text>
+  <text x="940" y="817" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    and t.blockedBy</text>
+  <text x="940" y="834" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    and can_start(t.id)]</text>
+  <text x="940" y="851" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  return msg + unblocked</text>
+  <line x1="700" y1="889" x2="700" y2="905" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="911" width="357" height="26" fill="#dc2626" rx="6"/>
+  <rect x="30" y="924" width="357" height="13" fill="#dc2626"/>
+  <text x="208" y="929" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">4. 状态机: pending → in_progress → completed</text>
+  <rect x="30" y="943" width="1340" height="146" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="320" y="953" width="223" height="126" fill="#fef2f2" rx="5" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="340" y="976" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">pending</text>
+  <text x="340" y="993" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="340" y="1010" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">create_task 创建</text>
+  <text x="340" y="1027" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">blockedBy 未全部完成时</text>
+  <text x="340" y="1044" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">can_start = false</text>
+  <text x="340" y="1061" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">claim 被拒绝</text>
+  <rect x="574" y="953" width="230" height="126" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="594" y="976" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">in_progress</text>
+  <text x="594" y="993" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="594" y="1010" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">claim_task 认领后</text>
+  <text x="594" y="1027" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">owner 已设置</text>
+  <text x="594" y="1044" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">can_start 已通过</text>
+  <text x="594" y="1061" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">其他 Agent 不能重复认领</text>
+  <rect x="834" y="953" width="246" height="126" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="854" y="976" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">completed</text>
+  <text x="854" y="993" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="854" y="1010" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">complete_task 完成后</text>
+  <text x="854" y="1027" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">自动扫描所有 pending 任务</text>
+  <text x="854" y="1044" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">报告被解锁的下游任务</text>
+  <text x="854" y="1061" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">下游的 can_start → true</text>
+  <line x1="700" y1="1099" x2="700" y2="1115" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="1121" width="321" height="26" fill="#16a34a" rx="6"/>
+  <rect x="30" y="1134" width="321" height="13" fill="#16a34a"/>
+  <text x="190" y="1139" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">5. DAG 示例: 搭数据库 → 写 API → 加测试</text>
+  <rect x="30" y="1153" width="1340" height="248" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="273" y="1163" width="262" height="228" fill="#0f172a" rx="5"/>
+  <text x="293" y="1186" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">schema = create_task(</text>
+  <text x="293" y="1203" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  "setup database schema")</text>
+  <text x="293" y="1220" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">endpoints = create_task(</text>
+  <text x="293" y="1237" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  "create API endpoints",</text>
+  <text x="293" y="1254" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  blockedBy=[schema.id])</text>
+  <text x="293" y="1271" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">tests = create_task(</text>
+  <text x="293" y="1288" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  "write tests",</text>
+  <text x="293" y="1305" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  blockedBy=[endpoints.id])</text>
+  <text x="293" y="1322" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">docs = create_task(</text>
+  <text x="293" y="1339" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  "write docs",</text>
+  <text x="293" y="1356" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  blockedBy=[schema.id])</text>
+  <rect x="565" y="1163" width="278" height="228" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="585" y="1186" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">执行顺序:</text>
+  <text x="585" y="1203" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="585" y="1220" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">1. claim + complete schema</text>
+  <text x="585" y="1237" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">   → 解锁 endpoints, docs</text>
+  <text x="585" y="1254" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">2. claim + complete endpoints</text>
+  <text x="585" y="1271" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">   → 解锁 tests</text>
+  <text x="585" y="1288" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">3. claim + complete docs</text>
+  <text x="585" y="1305" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">   (无下游依赖)</text>
+  <text x="585" y="1322" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">4. claim + complete tests</text>
+  <text x="585" y="1339" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">   (最后完成)</text>
+  <rect x="873" y="1163" width="254" height="228" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="893" y="1186" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">DAG 结构:</text>
+  <text x="893" y="1203" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="893" y="1220" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">     schema</text>
+  <text x="893" y="1237" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    /      \</text>
+  <text x="893" y="1254" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">   v        v</text>
+  <text x="893" y="1271" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">endpoints   docs</text>
+  <text x="893" y="1288" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">   |</text>
+  <text x="893" y="1305" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">   v</text>
+  <text x="893" y="1322" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"> tests</text>
+  <text x="893" y="1339" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="893" y="1356" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">schema 阻塞 endpoints+docs</text>
+  <text x="893" y="1373" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">endpoints 阻塞 tests</text>
+  <line x1="700" y1="1411" x2="700" y2="1427" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="1433" width="336" height="26" fill="#0ea5e9" rx="6"/>
+  <rect x="30" y="1446" width="336" height="13" fill="#0ea5e9"/>
+  <text x="198" y="1451" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">6. agent_loop: 8 个工具 (3 基础 + 5 任务)</text>
+  <rect x="30" y="1465" width="1340" height="41" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="106" y="1465" width="80" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="126" y="1488" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">bash</text>
+  <rect x="216" y="1465" width="120" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="236" y="1488" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">read_file</text>
+  <rect x="366" y="1465" width="127" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="386" y="1488" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">write_file</text>
+  <rect x="523" y="1465" width="135" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="543" y="1488" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">create_task</text>
+  <rect x="688" y="1465" width="127" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="708" y="1488" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">list_tasks</text>
+  <rect x="845" y="1465" width="111" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="865" y="1488" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">get_task</text>
+  <rect x="986" y="1465" width="127" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="1006" y="1488" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">claim_task</text>
+  <rect x="1143" y="1465" width="151" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="1163" y="1488" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">complete_task</text>
+  <rect x="30" y="1521" width="1340" height="280" fill="#1e293b" rx="8"/>
+  <text x="700" y="1556" fill="#fbbf24" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">文件持久化 · blockedBy 依赖图 · 跨会话可恢复</text>
+  <rect x="80" y="1591" width="213" height="204" fill="#334155" rx="6"/>
+  <text x="100" y="1619" fill="#93c5fd" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">vs TodoWrite (s05):</text>
+  <text x="100" y="1641" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="1663" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">TodoWrite: 会话内存清单</text>
+  <text x="100" y="1685" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">Task: .tasks/ 文件持久化</text>
+  <text x="100" y="1707" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">TodoWrite: 无依赖</text>
+  <text x="100" y="1729" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">Task: blockedBy 依赖图</text>
+  <text x="100" y="1751" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">TodoWrite: 无 owner</text>
+  <text x="100" y="1773" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">Task: owner + claim 认领</text>
+  <text x="100" y="1795" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">TodoWrite: 会话结束丢失</text>
+  <text x="100" y="1817" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">Task: 跨会话恢复进度</text>
+  <rect x="333" y="1591" width="235" height="204" fill="#334155" rx="6"/>
+  <text x="353" y="1619" fill="#86efac" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">三个关键设计:</text>
+  <text x="353" y="1641" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="353" y="1663" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">1. 文件持久化</text>
+  <text x="353" y="1685" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">   每个任务一个 JSON 文件</text>
+  <text x="353" y="1707" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">   跨会话恢复只需扫描目录</text>
+  <text x="353" y="1729" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">2. blockedBy 依赖检查</text>
+  <text x="353" y="1751" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">   can_start 全部完成才允许</text>
+  <text x="353" y="1773" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">   缺失依赖 = blocked</text>
+  <text x="353" y="1795" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">3. complete 自动解锁下游</text>
+  <text x="353" y="1817" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">   无需手动追踪依赖关系</text>
+  <line x1="303" y1="1693" x2="328" y2="1693" stroke="#64748b" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="80" y="1815" width="1100" height="114" fill="#1e293b" stroke="#475569" rx="6"/>
+  <text x="100" y="1843" fill="#fbbf24" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">s12 模拟 vs 真实 Claude Code</text>
+  <text x="100" y="1865" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="1887" fill="#f87171" font-size="11" font-family="Menlo, Monaco, monospace">s12 (模拟): 6 个字段 + 5 个工具 + .tasks/ JSON 文件 + blockedBy 依赖</text>
+  <text x="100" y="1909" fill="#4ade80" font-size="11" font-family="Menlo, Monaco, monospace">真实 CC: 9 个字段 (含 activeForm blocks metadata) + 4 个独立工具 (TaskCreate TaskGet TaskUpdate TaskList)</text>
+  <text x="100" y="1931" fill="#4ade80" font-size="11" font-family="Menlo, Monaco, monospace">真实 CC: 双重锁防竞争 (任务文件锁 + 列表级锁) + 高水位标防 ID 重用 + fs.watch 响应式监听</text>
+</svg>

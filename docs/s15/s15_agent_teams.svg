@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1050" font-family="Menlo, Monaco, monospace">
+  <defs><marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2563eb"/></marker></defs>
+  <rect width="1400" height="1050" fill="#f8fafc" rx="8"/>
+  <rect x="0" y="0" width="1400" height="44" fill="#1e293b" rx="8"/>
+  <rect x="0" y="32" width="1400" height="12" fill="#1e293b"/>
+  <text x="700" y="28" fill="#e2e8f0" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">s15 Agent Teams · MessageBus 文件收件箱 + 队友线程</text>
+  <rect x="30" y="60" width="177" height="26" fill="#64748b" rx="6"/>
+  <rect x="30" y="73" width="177" height="13" fill="#64748b"/>
+  <text x="118" y="78" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">1. 子 Agent vs 队友</text>
+  <rect x="30" y="92" width="1340" height="231" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="356" y="102" width="214" height="211" fill="#0f172a" rx="5"/>
+  <text x="376" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">s06 子 Agent:</text>
+  <text x="376" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="376" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 一次性, 用完销毁</text>
+  <text x="376" y="176" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 只回传结论</text>
+  <text x="376" y="193" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 上下文完全隔离</text>
+  <text x="376" y="210" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">· 临时工模式</text>
+  <text x="376" y="227" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="376" y="244" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">spawn_subagent(desc)</text>
+  <text x="376" y="261" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  → 跑完 → 返回字符串</text>
+  <rect x="600" y="102" width="223" height="211" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="620" y="125" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">s15 队友:</text>
+  <text x="620" y="142" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="620" y="159" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 多轮 (最多 10 轮)</text>
+  <text x="620" y="176" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 异步收件箱通信</text>
+  <text x="620" y="193" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 通过消息共享信息</text>
+  <text x="620" y="210" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 长期同事模式</text>
+  <text x="620" y="227" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="620" y="244" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">spawn_teammate_thread(</text>
+  <text x="620" y="261" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  name, role, prompt)</text>
+  <text x="620" y="278" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  → daemon 线程 →</text>
+  <text x="620" y="295" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    BUS.send 汇报</text>
+  <rect x="854" y="102" width="190" height="211" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="874" y="125" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">核心区别:</text>
+  <text x="874" y="142" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="874" y="159" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">子Agent = 临时工</text>
+  <text x="874" y="176" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  叫来干一件事就走</text>
+  <text x="874" y="193" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="874" y="210" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">队友 = 长期同事</text>
+  <text x="874" y="227" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  能通信 能协作</text>
+  <text x="874" y="244" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  跑在自己的线程里</text>
+  <line x1="700" y1="333" x2="700" y2="349" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="355" width="220" height="26" fill="#2563eb" rx="6"/>
+  <rect x="30" y="368" width="220" height="13" fill="#2563eb"/>
+  <text x="140" y="373" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">2. MessageBus: 文件收件箱</text>
+  <rect x="30" y="387" width="1340" height="299" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="277" y="397" width="262" height="279" fill="#0f172a" rx="5"/>
+  <text x="297" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">class MessageBus:</text>
+  <text x="297" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="297" y="454" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  def send(from, to,</text>
+  <text x="297" y="471" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">          content, type):</text>
+  <text x="297" y="488" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    msg = {from,to,content,</text>
+  <text x="297" y="505" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">           type, ts}</text>
+  <text x="297" y="522" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    inbox = .mailboxes/</text>
+  <text x="297" y="539" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">            {to}.jsonl</text>
+  <text x="297" y="556" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    append 一行 JSON</text>
+  <text x="297" y="573" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="297" y="590" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  def read_inbox(agent):</text>
+  <text x="297" y="607" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    读 {agent}.jsonl</text>
+  <text x="297" y="624" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    逐行解析 JSON</text>
+  <text x="297" y="641" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    删除文件 (消费式)</text>
+  <text x="297" y="658" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    返回消息列表</text>
+  <rect x="569" y="397" width="254" height="279" fill="#1e293b" rx="5"/>
+  <text x="589" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">.mailboxes/ 目录:</text>
+  <text x="589" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="589" y="454" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">lead.jsonl</text>
+  <text x="589" y="471" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  ← 队友发来的消息</text>
+  <text x="589" y="488" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">alice.jsonl</text>
+  <text x="589" y="505" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  ← Lead 发给 Alice 的消息</text>
+  <text x="589" y="522" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">bob.jsonl</text>
+  <text x="589" y="539" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  ← Lead 发给 Bob 的消息</text>
+  <text x="589" y="556" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="589" y="573" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">每个 Agent 一个文件</text>
+  <text x="589" y="590" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">跨线程可观察</text>
+  <rect x="853" y="397" width="270" height="279" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="873" y="420" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">为什么用文件?</text>
+  <text x="873" y="437" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="873" y="454" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">· 跨线程可观察</text>
+  <text x="873" y="471" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  cat .mailboxes/alice.jsonl</text>
+  <text x="873" y="488" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">· 真实 CC 也是文件收件箱</text>
+  <text x="873" y="505" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  ~/.claude/teams/{team}/</text>
+  <text x="873" y="522" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  inboxes/{agent}.json</text>
+  <text x="873" y="539" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">· 消费式读取</text>
+  <text x="873" y="556" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  读完删除, 避免重复</text>
+  <line x1="700" y1="696" x2="700" y2="712" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="718" width="300" height="26" fill="#7c3aed" rx="6"/>
+  <rect x="30" y="731" width="300" height="13" fill="#7c3aed"/>
+  <text x="180" y="736" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">3. spawn_teammate_thread(): 启动队友</text>
+  <rect x="30" y="750" width="1340" height="316" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="309" y="760" width="278" height="296" fill="#0f172a" rx="5"/>
+  <text x="329" y="783" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def spawn_teammate_thread(</text>
+  <text x="329" y="800" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    name, role, prompt):</text>
+  <text x="329" y="817" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  system = f"You are {name},</text>
+  <text x="329" y="834" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">            a {role}."</text>
+  <text x="329" y="851" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  def run():</text>
+  <text x="329" y="868" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    messages = [user: prompt]</text>
+  <text x="329" y="885" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    sub_tools = [bash, read,</text>
+  <text x="329" y="902" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">                write, send]</text>
+  <text x="329" y="919" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    for _ in range(10):</text>
+  <text x="329" y="936" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      inbox = BUS.read(name)</text>
+  <text x="329" y="953" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      if inbox: inject</text>
+  <text x="329" y="970" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      response = LLM call</text>
+  <text x="329" y="987" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      ... execute tools ...</text>
+  <text x="329" y="1004" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    BUS.send(name, lead,</text>
+  <text x="329" y="1021" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">             summary, result)</text>
+  <text x="329" y="1038" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  Thread(daemon=True).start()</text>
+  <rect x="617" y="760" width="214" height="296" fill="#faf5ff" rx="5" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="637" y="783" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">队友工具集 (4 个):</text>
+  <text x="637" y="800" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="637" y="817" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">· bash</text>
+  <text x="637" y="834" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">· read_file</text>
+  <text x="637" y="851" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">· write_file</text>
+  <text x="637" y="868" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">· send_message</text>
+  <text x="637" y="885" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="637" y="902" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">没有任务管理、cron 等</text>
+  <text x="637" y="919" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">聚焦通信机制</text>
+  <text x="637" y="936" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="637" y="953" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">Lead 工具集 (14 个):</text>
+  <text x="637" y="970" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">+ spawn_teammate</text>
+  <text x="637" y="987" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">+ send_message</text>
+  <text x="637" y="1004" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">+ check_inbox</text>
+  <rect x="861" y="760" width="230" height="296" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="881" y="783" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">关键设计:</text>
+  <text x="881" y="800" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="881" y="817" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· daemon 线程</text>
+  <text x="881" y="834" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  主线程退出时自动清理</text>
+  <text x="881" y="851" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· 最多 10 轮</text>
+  <text x="881" y="868" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  防止无限循环</text>
+  <text x="881" y="885" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· 完成后自动汇报</text>
+  <text x="881" y="902" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  BUS.send(name, lead,</text>
+  <text x="881" y="919" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">           summary)</text>
+  <text x="881" y="936" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· active_teammates 追踪</text>
+  <text x="881" y="953" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  运行中的队友</text>
+  <line x1="700" y1="1076" x2="700" y2="1092" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="1098" width="343" height="26" fill="#dc2626" rx="6"/>
+  <rect x="30" y="1111" width="343" height="13" fill="#dc2626"/>
+  <text x="201" y="1116" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">4. Lead inbox 注入 + 权限冒泡 (教学版省略)</text>
+  <rect x="30" y="1130" width="1340" height="282" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="301" y="1140" width="254" height="262" fill="#0f172a" rx="5"/>
+  <text x="321" y="1163" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">Lead 主循环结束后:</text>
+  <text x="321" y="1180" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="321" y="1197" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">inbox = BUS.read_inbox(</text>
+  <text x="321" y="1214" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">            "lead")</text>
+  <text x="321" y="1231" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">if inbox:</text>
+  <text x="321" y="1248" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  inbox_text =</text>
+  <text x="321" y="1265" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    f"From {m["from"]}:</text>
+  <text x="321" y="1282" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">     {m["content"]}"</text>
+  <text x="321" y="1299" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  history.append(</text>
+  <text x="321" y="1316" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    user: "[Inbox]\n</text>
+  <text x="321" y="1333" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">            {inbox_text}")</text>
+  <text x="321" y="1350" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="321" y="1367" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">下一轮 LLM 调用时可见</text>
+  <rect x="585" y="1140" width="238" height="262" fill="#fef2f2" rx="5" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="605" y="1163" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">权限冒泡 (CC 真实实现):</text>
+  <text x="605" y="1180" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="605" y="1197" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">1. 队友遇审批 →</text>
+  <text x="605" y="1214" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">   permission_request →</text>
+  <text x="605" y="1231" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">   Lead 收件箱</text>
+  <text x="605" y="1248" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">2. Lead inbox poller →</text>
+  <text x="605" y="1265" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">   路由到审批队列</text>
+  <text x="605" y="1282" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">3. 用户审批 →</text>
+  <text x="605" y="1299" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">   permission_response →</text>
+  <text x="605" y="1316" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">   队友收件箱</text>
+  <text x="605" y="1333" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">4. 队友 poller (500ms) →</text>
+  <text x="605" y="1350" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">   收到回复 → 继续/拒绝</text>
+  <text x="605" y="1367" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="605" y="1384" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">教学版省略此流程</text>
+  <rect x="853" y="1140" width="246" height="262" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="873" y="1163" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">CC 的 15 种消息类型:</text>
+  <text x="873" y="1180" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="873" y="1197" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">plain text / idle /</text>
+  <text x="873" y="1214" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">permission_request /</text>
+  <text x="873" y="1231" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">permission_response /</text>
+  <text x="873" y="1248" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">plan_approval /</text>
+  <text x="873" y="1265" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">shutdown_request /</text>
+  <text x="873" y="1282" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">shutdown_approved /</text>
+  <text x="873" y="1299" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">task_assignment /</text>
+  <text x="873" y="1316" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">teammate_terminated / ...</text>
+  <text x="873" y="1333" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="873" y="1350" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">文本包装在</text>
+  <text x="873" y="1367" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">&lt;teammate-message&gt;</text>
+  <text x="873" y="1384" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">XML 标签中</text>
+  <line x1="700" y1="1422" x2="700" y2="1438" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="1444" width="264" height="26" fill="#16a34a" rx="6"/>
+  <rect x="30" y="1457" width="264" height="13" fill="#16a34a"/>
+  <text x="162" y="1462" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">5. 并行执行: Lead + Alice + Bob</text>
+  <rect x="30" y="1476" width="1340" height="41" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="-52" y="1476" width="214" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="-32" y="1499" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">Lead: spawn alice bob</text>
+  <rect x="192" y="1476" width="190" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="212" y="1499" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">Alice: 创建 schema</text>
+  <rect x="412" y="1476" width="190" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="432" y="1499" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">Bob: 写 API 客户端</text>
+  <rect x="632" y="1476" width="206" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="652" y="1499" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">Alice: BUS.send 汇报</text>
+  <rect x="868" y="1476" width="190" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="888" y="1499" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">Bob: BUS.send 汇报</text>
+  <rect x="1088" y="1476" width="175" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="1108" y="1499" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">Lead: inbox 注入</text>
+  <rect x="1293" y="1476" width="159" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="1313" y="1499" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">Lead: 汇总结果</text>
+  <rect x="30" y="1532" width="1340" height="230" fill="#1e293b" rx="8"/>
+  <text x="700" y="1567" fill="#fbbf24" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">文件收件箱 · 队友线程 · inbox 注入</text>
+  <rect x="80" y="1602" width="228" height="204" fill="#334155" rx="6"/>
+  <text x="100" y="1630" fill="#93c5fd" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">核心概念:</text>
+  <text x="100" y="1652" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="1674" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">MessageBus:</text>
+  <text x="100" y="1696" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  文件收件箱, send + read</text>
+  <text x="100" y="1718" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  .mailboxes/*.jsonl</text>
+  <text x="100" y="1740" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="1762" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">spawn_teammate_thread:</text>
+  <text x="100" y="1784" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  daemon 线程, 最多 10 轮</text>
+  <text x="100" y="1806" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  简化工具集 (4 个)</text>
+  <text x="100" y="1828" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  完成后自动 BUS.send 汇报</text>
+  <rect x="348" y="1602" width="228" height="240" fill="#334155" rx="6"/>
+  <text x="368" y="1630" fill="#86efac" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">s15 模拟 vs 真实 CC:</text>
+  <text x="368" y="1652" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="368" y="1674" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">s15 (模拟): 1 MessageBus +</text>
+  <text x="368" y="1696" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  spawn_teammate_thread</text>
+  <text x="368" y="1718" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  文件 JSONL 收件箱</text>
+  <text x="368" y="1740" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  队友 4 工具, 最多 10 轮</text>
+  <text x="368" y="1762" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="368" y="1784" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">真实 CC:</text>
+  <text x="368" y="1806" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  15 种消息类型</text>
+  <text x="368" y="1828" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  proper-lockfile 防并发</text>
+  <text x="368" y="1850" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  idle loop 替代 10 轮限制</text>
+  <text x="368" y="1872" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  双向权限冒泡机制</text>
+  <line x1="318" y1="1704" x2="343" y2="1704" stroke="#64748b" stroke-width="2" marker-end="url(#ab)"/>
+</svg>

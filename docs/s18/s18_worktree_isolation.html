@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s18 Worktree Isolation 目录隔离</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s18 Worktree Isolation 目录隔离</h1>
+<p class="subtitle">Git worktree · 任务-目录绑定 · 互不干扰</p>
+
+<h2>1. 问题：多队友共享同一目录</h2>
+<div class="note">
+  <strong>痛点:</strong> s17 中 Alice 和 Bob 都在同一个目录下工作。Alice <code>write_file("config.py", ...)</code>，Bob 也 <code>write_file("config.py", ...)</code>。两个人改同一个文件，互相覆盖。s15-s17 解决了"谁干什么"和"怎么通信"，但没解决"在哪干"。
+</div>
+
+<h2>2. Git Worktree 方案</h2>
+<table>
+  <tr><th></th><th>无隔离 (s17)</th><th>Worktree 隔离 (s18)</th></tr>
+  <tr><td><b>工作目录</b></td><td>共享同一个目录</td><td>各自独立目录 + 独立分支</td></tr>
+  <tr><td><b>文件冲突</b></td><td>互相覆盖</td><td>互不干扰</td></tr>
+  <tr><td><b>回滚</b></td><td>分不清谁的改动</td><td>按分支独立回滚</td></tr>
+  <tr><td><b>绑定</b></td><td>无</td><td>Task.worktree 字段绑定</td></tr>
+</table>
+
+<h2>3. 整体架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph repo["Git 仓库"]
+        direction LR
+        R1["main 分支 (原始目录)"]
+        R2[".worktrees/auth-refactor/ (分支 wt/auth-refactor)"]
+        R3[".worktrees/ui-login/ (分支 wt/ui-login)"]
+    end
+
+    subgraph tasks["任务绑定"]
+        direction LR
+        T1["task_auth: worktree = auth-refactor"]
+        T2["task_ui: worktree = ui-login"]
+    end
+
+    subgraph agents["队友隔离"]
+        direction LR
+        A1["Alice → cd .worktrees/auth-refactor/"]
+        A2["Bob → cd .worktrees/ui-login/"]
+    end
+
+    repo --> tasks --> agents
+</div>
+
+<h2>4. Worktree 生命周期</h2>
+<div class="mermaid">
+flowchart TD
+    A["create_worktree name task_id"] --> B["validate_worktree_name: 只允许 A-Za-z0-9._- 1-64字符"]
+    B --> C["git worktree add path -b wt/name HEAD"]
+    C --> D{"task_id 提供?"}
+    D -->|"是"| E["bind_task_to_worktree: task.worktree = name"]
+    D -->|"否"| F["跳过绑定"]
+    E --> G["队友 claim 任务 → cd worktree → 工作"]
+    F --> G
+    G --> H{"任务完成?"}
+    H -->|"是 保留"| I["keep_worktree: 保留目录和分支"]
+    H -->|"是 清理"| J["remove_worktree: git worktree remove + 删除分支"]
+</div>
+
+<h2>5. 关键方法速查</h2>
+<table>
+  <tr><th>方法</th><th>代码行</th><th>作用</th><th>调用时机</th></tr>
+  <tr><td><code>create_worktree()</code></td><td>~45</td><td>validate → git worktree add → bind_task → log_event</td><td>Lead 为任务创建工作目录</td></tr>
+  <tr><td><code>bind_task_to_worktree()</code></td><td>~56</td><td>task.worktree = name（只写字段，不改状态）</td><td>create_worktree 内部</td></tr>
+  <tr><td><code>remove_worktree()</code></td><td>~65</td><td>git worktree remove + git branch -D wt/name</td><td>任务完成后清理</td></tr>
+  <tr><td><code>keep_worktree()</code></td><td>~75</td><td>保留 worktree 目录和分支</td><td>需要保留工作成果时</td></tr>
+  <tr><td><code>validate_worktree_name()</code></td><td>~35</td><td>拒绝路径穿越（../）和非法字符，只允许 [A-Za-z0-9._-]{1,64}</td><td>create_worktree 前置校验</td></tr>
+  <tr><td><code>log_event()</code></td><td>~30</td><td>记录 worktree 操作到 .worktrees/events.jsonl</td><td>create/remove/keep 时</td></tr>
+</table>
+
+<h2>6. 新增方法详解</h2>
+<p>s18 在 s17 基础上增加了 <strong>5 个方法 + 1 个目录 + 1 个 Task 字段</strong>，聚焦于目录隔离：</p>
+<table>
+  <tr><th>层次</th><th>方法/类型</th><th>作用</th></tr>
+  <tr><td><b>目录</b></td><td><code>WORKTREES_DIR</code></td><td>.worktrees/ 目录，每个 worktree 一个子目录</td></tr>
+  <tr><td><b>Task 扩展</b></td><td><code>Task.worktree</code></td><td>新增字段：绑定任务到 worktree 名称</td></tr>
+  <tr><td><b>安全层</b></td><td><code>validate_worktree_name()</code></td><td>拒绝 ../ 路径穿越、非法字符，只允许 [A-Za-z0-9._-]{1,64}</td></tr>
+  <tr><td><b>创建层</b></td><td><code>create_worktree()</code></td><td>validate → git worktree add -b wt/name → bind_task → log_event</td></tr>
+  <tr><td><b>绑定层</b></td><td><code>bind_task_to_worktree()</code></td><td>task.worktree = name + save_task（不改状态，保持 pending）</td></tr>
+  <tr><td><b>清理层</b></td><td><code>remove_worktree()</code></td><td>git worktree remove + git branch -D wt/name</td></tr>
+  <tr><td><b>保留层</b></td><td><code>keep_worktree()</code></td><td>保留目录和分支，不清理</td></tr>
+  <tr><td><b>审计层</b></td><td><code>log_event()</code></td><td>记录 create/remove/keep 操作到 events.jsonl</td></tr>
+</table>
+
+<h2>7. 整体流程变化：s17 → s18</h2>
+
+<h3>s17 工作流程（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    A["Lead 创建任务"] --> B["队友 claim → 共享目录工作"] --> C["完成"]
+</div>
+
+<h3>s18 工作流程（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    A["Lead: create_task"] --> B["Lead: create_worktree name task_id"]
+    B --> C["bind_task_to_worktree: task.worktree = name"]
+    C --> D["队友: scan_unclaimed_tasks → claim"]
+    D --> E["队友: cd .worktrees/name/ → 工作"]
+    E --> F{"完成?"}
+    F -->|"清理"| G["remove_worktree"]
+    F -->|"保留"| H["keep_worktree"]
+</div>
+
+<h3>三个关键设计细节</h3>
+<table>
+  <tr><th style="width:180px">设计点</th><th>说明</th></tr>
+  <tr><td><b>安全校验</b></td><td>validate_worktree_name 拒绝 ../ 路径穿越和非法字符，只允许 [A-Za-z0-9._-]{1,64}。防止恶意 name 访问 worktree 目录外的文件。</td></tr>
+  <tr><td><b>绑定不改状态</b></td><td>bind_task_to_worktree 只写 task.worktree 字段，不改变 task.status。任务保持 pending，等队友自己 claim。绑定和认领是独立的两个步骤。</td></tr>
+  <tr><td><b>Git 原生隔离</b></td><td>每个 worktree 有独立的分支（wt/name），队友的改动在各自分支上。完成后可独立 merge 或丢弃，不会互相污染。</td></tr>
+</table>
+
+<h2>8. s17 vs s18 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s17</th><th>s18</th></tr>
+  <tr><td><b>工作目录</b></td><td>共享同一个目录</td><td>每个任务独立 worktree + 独立分支</td></tr>
+  <tr><td><b>文件冲突</b></td><td>互相覆盖</td><td>完全隔离，互不干扰</td></tr>
+  <tr><td><b>回滚</b></td><td>分不清谁的改动</td><td>按分支独立回滚</td></tr>
+  <tr><td><b>绑定</b></td><td>无</td><td>Task.worktree 字段绑定任务到目录</td></tr>
+  <tr><td><b>安全</b></td><td>无</td><td>validate_worktree_name 防路径穿越</td></tr>
+  <tr><td><b>清理</b></td><td>无</td><td>remove_worktree / keep_worktree</td></tr>
+  <tr><td><b>核心痛点</b></td><td>共享目录互相覆盖</td><td>各干各的目录，互不干扰</td></tr>
+</table>
+
+<div class="note">
+  <strong>s17 → s18 的关系:</strong> s15-s17 解决了"谁干什么"（任务系统 + 自治认领）和"怎么通信"（MessageBus + 协议），s18 解决"在哪干"（Git worktree 目录隔离）。三层叠加：任务管目标，worktree 管目录，消息总线管通信。
+</div>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s15 Agent Teams 多Agent协作</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s15 Agent Teams 多Agent协作</h1>
+<p class="subtitle">MessageBus 文件收件箱 · 队友线程 · inbox 注入</p>
+
+<h2>1. 子 Agent vs 队友</h2>
+<table>
+  <tr><th></th><th>s06 子 Agent</th><th>s15 队友</th></tr>
+  <tr><td><b>生命周期</b></td><td>一次性，用完销毁</td><td>多轮（教学版限 10 轮）</td></tr>
+  <tr><td><b>通信</b></td><td>只回传结论</td><td>异步收件箱，随时通信</td></tr>
+  <tr><td><b>上下文</b></td><td>完全隔离</td><td>通过消息共享信息</td></tr>
+  <tr><td><b>数量</b></td><td>一个主 Agent + 偶尔子 Agent</td><td>一个 Lead + 多个队友</td></tr>
+</table>
+
+<div class="note">
+  <strong>核心区别:</strong> s06 的子 Agent 是临时工——叫来干一件事就走了。s15 的队友是能通信、能协作的长期同事。Lead 通过 MessageBus 收发消息，队友跑在自己的 daemon 线程里。
+</div>
+
+<h2>2. 整体架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph lead["Lead Agent (主线程)"]
+        direction LR
+        L1["agent_loop"]
+        L2["14 个工具"]
+        L3["inbox 注入"]
+        L1 --> L2 --> L3
+    end
+
+    subgraph bus["MessageBus 文件收件箱"]
+        direction LR
+        B1[".mailboxes/"]
+        B2["lead.jsonl"]
+        B3["alice.jsonl"]
+        B4["bob.jsonl"]
+        B1 --> B2
+        B1 --> B3
+        B1 --> B4
+    end
+
+    subgraph teammates["队友线程 (daemon)"]
+        direction LR
+        T1["Alice 线程<br/>4 个简化工具<br/>最多 10 轮"]
+        T2["Bob 线程<br/>4 个简化工具<br/>最多 10 轮"]
+    end
+
+    lead -->|"send_message"| bus
+    bus -->|"read_inbox"| lead
+    teammates -->|"send_message"| bus
+    bus -->|"read_inbox"| teammates
+</div>
+
+<h2>3. MessageBus 消息通信</h2>
+<div class="mermaid">
+flowchart TD
+    subgraph send["send(from, to, content, type)"]
+        direction LR
+        S1["构造消息 JSON"] --> S2["打开 {to}.jsonl"]
+        S2 --> S3["append 一行 JSON"]
+        S3 --> S4["消息到达对方收件箱"]
+    end
+
+    subgraph read["read_inbox(agent)"]
+        direction LR
+        R1["检查 {agent}.jsonl 是否存在"] --> R2{"存在?"}
+        R2 -->|"否"| R3["返回空列表"]
+        R2 -->|"是"| R4["逐行解析 JSON"]
+        R4 --> R5["删除文件 (消费式)"]
+        R5 --> R6["返回消息列表"]
+    end
+
+    send --> read
+</div>
+
+<h2>4. spawn_teammate_thread 队友生命周期</h2>
+<div class="mermaid">
+flowchart TD
+    A["Lead 调用 spawn_teammate"] --> B["构造队友 system prompt"]
+    B --> C["创建 messages = [user: prompt]"]
+    C --> D["启动 daemon 线程"]
+    D --> E{"队友循环 (最多 10 轮)"}
+    E --> F["检查收件箱: BUS.read_inbox(name)"]
+    F --> G{"有新消息?"}
+    G -->|"是"| H["注入 inbox 到 messages"]
+    G -->|"否"| I["LLM 调用 (4 个工具)"]
+    H --> I
+    I --> J{"stop_reason?"}
+    J -->|"tool_use"| K["执行工具: bash read write send_message"]
+    K --> E
+    J -->|"end_turn"| L["BUS.send(name, lead, summary, result)"]
+    L --> M["线程结束"]
+    E -->|"达到 10 轮上限"| L
+</div>
+
+<h2>5. Lead inbox 注入与工具集</h2>
+<div class="mermaid">
+flowchart LR
+    subgraph lead_tools["Lead 工具 (14 个)"]
+        direction TB
+        LT1["基础: bash read_file write_file"]
+        LT2["任务: create_task list_tasks get_task claim_task complete_task"]
+        LT3["后台: schedule_cron list_crons cancel_cron"]
+        LT4["团队: spawn_teammate send_message check_inbox"]
+    end
+
+    subgraph teammate_tools["队友工具 (4 个)"]
+        direction TB
+        TT1["bash"]
+        TT2["read_file"]
+        TT3["write_file"]
+        TT4["send_message"]
+    end
+
+    subgraph inject["inbox 注入"]
+        I1["Lead 每轮结束后"]
+        I2["BUS.read_inbox(lead)"]
+        I3["注入到 history"]
+        I1 --> I2 --> I3
+    end
+</div>
+
+<h2>6. 关键类与方法速查</h2>
+<table>
+  <tr><th>类/方法</th><th>代码行</th><th>作用</th><th>调用时机</th></tr>
+  <tr><td><code>MessageBus</code></td><td>602</td><td>文件收件箱类：send() 写 JSONL，read_inbox() 消费式读取</td><td>全局单例 BUS</td></tr>
+  <tr><td><code>MessageBus.send()</code></td><td>~606</td><td>构造消息 JSON → append 到 {to}.jsonl</td><td>send_message 工具 / 队友汇报</td></tr>
+  <tr><td><code>MessageBus.read_inbox()</code></td><td>~618</td><td>逐行解析 JSONL → 删除文件 → 返回消息列表</td><td>每轮循环前检查收件箱</td></tr>
+  <tr><td><code>spawn_teammate_thread()</code></td><td>643</td><td>构造队友 system prompt + 启动 daemon 线程 + 最多 10 轮</td><td>Lead 调用 spawn_teammate 工具</td></tr>
+  <tr><td><code>active_teammates</code></td><td>638</td><td>dict: name → bool，追踪运行中的队友</td><td>spawn / 完成时更新</td></tr>
+  <tr><td><code>run_send_message()</code></td><td>735</td><td>Lead/队友发送消息到指定收件人</td><td>send_message 工具</td></tr>
+  <tr><td><code>run_check_inbox()</code></td><td>740</td><td>Lead 检查自己的收件箱</td><td>check_inbox 工具</td></tr>
+  <tr><td><code>MAILBOX_DIR</code></td><td>598</td><td>.mailboxes/ 目录，每个 Agent 一个 .jsonl 文件</td><td>程序启动时创建</td></tr>
+</table>
+
+<h2>7. 新增方法详解</h2>
+
+<p>s15 在 s14 基础上增加了 <strong>1 个类 + 4 个方法 + 2 个数据结构</strong>，聚焦于多 Agent 文件收件箱通信：</p>
+
+<table>
+  <tr><th>层次</th><th>方法/类型</th><th>代码行</th><th>作用</th><th>触发时机</th></tr>
+  <tr>
+    <td rowspan="2"><b>通信层</b></td>
+    <td><code>MessageBus</code></td><td>602</td><td>文件收件箱类：send() 追加 JSONL，read_inbox() 消费式读取+删除</td><td>全局单例</td>
+  </tr>
+  <tr>
+    <td><code>MAILBOX_DIR</code></td><td>598</td><td>.mailboxes/ 目录，每个 Agent 一个 {name}.jsonl 文件</td><td>程序启动时创建</td>
+  </tr>
+  <tr>
+    <td rowspan="2"><b>队友层</b></td>
+    <td><code>spawn_teammate_thread()</code></td><td>643</td><td>构造 system prompt → daemon 线程 → 简化 agent_loop（最多 10 轮）→ 完成后 BUS.send 汇报</td><td>Lead 调用 spawn_teammate 工具</td>
+  </tr>
+  <tr>
+    <td><code>active_teammates</code></td><td>638</td><td>dict: name → bool，追踪运行中的队友</td><td>spawn 时设为 True，完成时设为 False</td>
+  </tr>
+  <tr>
+    <td rowspan="2"><b>工具层</b></td>
+    <td><code>run_send_message()</code></td><td>735</td><td>BUS.send(from, to, content) 发送消息</td><td>send_message 工具</td>
+  </tr>
+  <tr>
+    <td><code>run_check_inbox()</code></td><td>740</td><td>BUS.read_inbox(agent) 读取收件箱</td><td>check_inbox 工具</td>
+  </tr>
+</table>
+
+<h2>8. 整体流程变化：s14 → s15</h2>
+
+<h3>s14 流程（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    U1["用户输入"] --> L1["Lead agent_loop"]
+    L1 --> T1["工具执行 + cron"]
+    T1 --> D1["返回结果"]
+</div>
+
+<h3>s15 流程（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    subgraph lead["Lead 主循环"]
+        direction LR
+        L1["用户输入"] --> L2["agent_loop"]
+        L2 --> L3["工具执行 (14 tools)"]
+        L3 --> L4{"spawn_teammate?"}
+        L4 -->|"是"| L5["启动队友 daemon 线程"]
+        L4 -->|"否"| L6["继续"]
+        L5 --> L6
+        L6 --> L7["inbox 注入"]
+    end
+
+    subgraph teammate["队友线程 (并行)"]
+        direction LR
+        T1["检查 inbox"] --> T2["LLM 调用 (4 tools)"]
+        T2 --> T3["执行工具"]
+        T3 --> T4{"轮数 < 10?"}
+        T4 -->|"是"| T1
+        T4 -->|"否"| T5["BUS.send 汇报 Lead"]
+    end
+
+    subgraph bus["MessageBus"]
+        B1[".mailboxes/ *.jsonl"]
+    end
+
+    lead -->|"send_message"| bus
+    bus -->|"read_inbox"| lead
+    teammate -->|"send_message"| bus
+    bus -->|"read_inbox"| teammate
+</div>
+
+<h3>三个关键设计细节</h3>
+
+<table>
+  <tr><th style="width:180px">设计点</th><th>说明</th></tr>
+  <tr>
+    <td><b>文件收件箱</b></td>
+    <td>
+      为什么用文件而不是内存队列？文件跨线程可观察（debug 时直接 cat .mailboxes/alice.jsonl），真实 CC 也是文件收件箱。<br/>
+      <code>read_inbox</code> 是消费式的——读完就删文件，避免重复处理。
+    </td>
+  </tr>
+  <tr>
+    <td><b>队友简化工具集</b></td>
+    <td>
+      队友只有 4 个工具（bash、read_file、write_file、send_message），没有任务管理、cron 调度等。<br/>
+      真实 CC 的队友也有 TaskCreate、TaskUpdate，任务系统是团队共享的。
+    </td>
+  </tr>
+  <tr>
+    <td><b>10 轮限制 + daemon 线程</b></td>
+    <td>
+      教学版限 10 轮防止无限循环；真实 CC 用 idle loop：跑完一轮发 idle_notification，等 inbox 消息，收到后继续。<br/>
+      <code>threading.Thread(daemon=True)</code> 保证主线程退出时队友线程自动清理。
+    </td>
+  </tr>
+</table>
+
+<h2>9. s14 vs s15 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s14</th><th>s15</th></tr>
+  <tr><td><b>Agent 数量</b></td><td>1</td><td>1 Lead + N 队友线程</td></tr>
+  <tr><td><b>通信</b></td><td>无</td><td>MessageBus + .mailboxes/*.jsonl</td></tr>
+  <tr><td><b>新增类</b></td><td>CronJob</td><td>MessageBus</td></tr>
+  <tr><td><b>新增方法</b></td><td>cron 调度相关</td><td>spawn_teammate_thread + send/check 工具</td></tr>
+  <tr><td><b>Lead 工具数</b></td><td>11</td><td>14（+ spawn_teammate, send_message, check_inbox）</td></tr>
+  <tr><td><b>队友工具</b></td><td>无</td><td>bash, read_file, write_file, send_message (4)</td></tr>
+  <tr><td><b>核心痛点</b></td><td>单个 Agent 上下文有限</td><td>多 Agent 并行 + 通信协作</td></tr>
+</table>
+
+<div class="note">
+  <strong>s14 → s15 的关系:</strong> s14 提供 cron 调度（定时任务），s15 在此基础上增加多 Agent 团队协作。两个系统独立叠加：cron 管定时触发，团队管并行分工。Lead 可以 cron 定时检查队友进度，也可以 spawn 队友后继续处理自己的任务。
+</div>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

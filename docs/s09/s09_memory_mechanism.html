@@ -60,12 +60,12 @@ flowchart TB
 <h2>2. 读写流程 (时序图)</h2>
 <div class="mermaid">
 sequenceDiagram
-    participant User as 👤 用户
-    participant Loop as 🔄 agent_loop
-    participant Sys as 📝 SYSTEM prompt
-    participant LLM as 🤖 大模型
-    participant Mem as 💾 .memory/
-    participant Ext as 🔍 extract_memories
+    participant User as 用户
+    participant Loop as agent_loop
+    participant Sys as SYSTEM prompt
+    participant LLM as 大模型
+    participant Mem as .memory
+    participant Ext as extract_memories
 
     Note over Mem: === 启动阶段 ===
     Loop->>Mem: read_memory_index()
@@ -80,15 +80,15 @@ sequenceDiagram
     Sys->>LLM: SYSTEM + 相关记忆 + 对话
 
     Note over LLM,Ext: === 执行阶段 ===
-    LLM-->>Loop: 响应/工具调用
+    LLM-->>Loop: 响应 / 工具调用
     Loop->>Loop: 执行工具, 返回结果
-    alt stop_reason != tool_use
-        Loop->>Ext: extract_memories(原始对话)
-        Ext->>LLM: "提取用户偏好/项目事实"
-        LLM-->>Ext: JSON: [{name, type, description, body}]
-        Ext->>Mem: write_memory_file() 写入新记忆
-        Ext->>Mem: _rebuild_index() 更新索引
-        Loop->>Mem: consolidate_memories() (≥10个)
+    alt 对话结束 (非工具调用)
+        Loop->>Ext: extract_memories 原始对话
+        Ext->>LLM: 提取用户偏好 / 项目事实
+        LLM-->>Ext: JSON: name, type, description, body
+        Ext->>Mem: write_memory_file 写入新记忆
+        Ext->>Mem: rebuild_index 更新索引
+        Loop->>Mem: consolidate_memories 大于等于10个
     end
 </div>
 
@@ -177,6 +177,142 @@ flowchart TD
 <div class="note">
   <strong>💡 核心设计:</strong> 记忆系统采用和 skill 相同的<strong>两级加载架构</strong>。索引始终在线 (便宜), 完整内容按需注入 (精准)。区别在于记忆是<strong>双向</strong>的——不仅读取, 还会从对话中<strong>自动提取</strong>新记忆并写回文件系统。
 </div>
+
+<h2>8. 新增方法详解</h2>
+
+<p>s09 在 s08 压缩管线之上增加了 <strong>11 个方法</strong>，按职责分为四个层次：</p>
+
+<table>
+  <tr><th>层次</th><th>方法</th><th>代码行</th><th>作用</th><th>触发时机</th></tr>
+  <tr>
+    <td rowspan="3"><b>存储层</b><br/>(写入)</td>
+    <td><code>_parse_frontmatter()</code></td><td>60</td><td>解析 YAML frontmatter，返回 (meta, body)</td><td>被其他方法调用</td>
+  </tr>
+  <tr>
+    <td><code>write_memory_file()</code></td><td>74</td><td>将 name/type/description/body 写入 .memory/xxx.md</td><td>提取/合并时</td>
+  </tr>
+  <tr>
+    <td><code>_rebuild_index()</code></td><td>86</td><td>扫描所有 .md 文件，重建 MEMORY.md 索引</td><td>每次写入后自动调用</td>
+  </tr>
+  <tr>
+    <td rowspan="3"><b>读取层</b><br/>(查询)</td>
+    <td><code>read_memory_index()</code></td><td>100</td><td>读取 MEMORY.md 索引文本</td><td>build_system() 构建 SYSTEM prompt</td>
+  </tr>
+  <tr>
+    <td><code>read_memory_file()</code></td><td>108</td><td>读取单个记忆文件的完整内容</td><td>load_memories() 加载相关记忆</td>
+  </tr>
+  <tr>
+    <td><code>list_memory_files()</code></td><td>116</td><td>列出所有记忆文件的 filename/name/description/type/body</td><td>选择、提取、整理时</td>
+  </tr>
+  <tr>
+    <td rowspan="2"><b>选择与加载层</b><br/>(每轮开始)</td>
+    <td><code>select_relevant_memories()</code></td><td>134</td><td>LLM side-query 从目录中选相关记忆，失败则关键词降级</td><td>load_memories() 内部调用</td>
+  </tr>
+  <tr>
+    <td><code>load_memories()</code></td><td>211</td><td>选择相关记忆 → 读文件 → 拼成 XML 块</td><td>agent_loop 每轮开始时</td>
+  </tr>
+  <tr>
+    <td rowspan="2"><b>提取与整理层</b><br/>(每轮结束)</td>
+    <td><code>extract_memories()</code></td><td>226</td><td>LLM 从原始对话中提取新偏好/约束/事实 → 写入文件</td><td>每轮对话结束 (stop_reason != tool_use)</td>
+  </tr>
+  <tr>
+    <td><code>consolidate_memories()</code></td><td>293</td><td>LLM 去重/合并/淘汰，精简全部记忆</td><td>文件数 ≥ 10 时触发</td>
+  </tr>
+  <tr>
+    <td><b>SYSTEM 构建</b></td>
+    <td><code>build_system()</code></td><td>345</td><td>读索引 → 拼进 SYSTEM prompt（含记忆清单）</td><td>agent_loop 每轮开始时</td>
+  </tr>
+</table>
+
+<h2>9. 整体流程变化：s08 → s09</h2>
+
+<h3>s08 流程（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    U1["用户输入"] --> C1["压缩管线 budget snip micro"]
+    C1 --> L1["LLM 调用"]
+    L1 --> T1["tool_use 循环"]
+    T1 --> D1["结束"]
+</div>
+
+<h3>s09 流程（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    subgraph begin["每轮开始"]
+        direction LR
+        B1["load_memories messages"] --> B2["select_relevant_memories LLM side-query"]
+        B2 --> B3["read_memory_file 读完整内容"]
+        B3 --> B4["拼成 XML 块"]
+        B5["build_system 读索引拼进 SYSTEM"] --> B6["SYSTEM prompt 含记忆清单"]
+    end
+
+    subgraph compress["压缩管线 s08 不变"]
+        direction LR
+        P1["保存压缩前快照 pre_compress"] --> P2["tool_result_budget"]
+        P2 --> P3["snip_compact"]
+        P3 --> P4["micro_compact"]
+        P4 --> P5["auto compact 超限时"]
+    end
+
+    subgraph llm["LLM 调用"]
+        L1["system: 含记忆索引清单"]
+        L2["user turn: 前置 XML 相关记忆内容块"]
+    end
+
+    subgraph tools["tool_use 循环"]
+        T1["bash read_file write_file edit_file glob task"]
+    end
+
+    subgraph finish["每轮结束 stop_reason != tool_use"]
+        direction LR
+        F1["extract_memories pre_compress 用压缩前快照"]
+        F2["write_memory_file 写入"]
+        F3["rebuild_index 更新索引"]
+        F4["consolidate_memories 文件数大于等于10触发"]
+        F1 --> F2 --> F3 --> F4
+    end
+
+    begin --> compress --> llm --> tools --> finish
+    finish -.->|"写回 .memory/"| begin
+</div>
+
+<h3>三个关键设计细节</h3>
+
+<table>
+  <tr><th style="width:180px">设计点</th><th>说明</th></tr>
+  <tr>
+    <td><b>两条加载路径</b></td>
+    <td>
+      <b>索引常驻 SYSTEM</b>：MEMORY.md 只是文件名 + 描述的一行行链接，极轻量（≤200 行），可被 prompt cache 缓存，几乎零额外成本。<br/>
+      <b>内容按需注入</b>：只有 LLM 判定相关的记忆（最多 5 条）才读取完整内容注入当前 user turn，不破坏 prompt cache 结构。
+    </td>
+  </tr>
+  <tr>
+    <td><b>压缩前快照</b></td>
+    <td>
+      压缩管线会截断/改写消息，导致细节丢失。但提取记忆需要完整上下文。<br/>
+      解决：压缩前先 <code>pre_compress = messages.copy()</code>，压缩后 <code>extract_memories(pre_compress)</code> 用原始消息提取，保证完整性。
+    </td>
+  </tr>
+  <tr>
+    <td><b>LLM 优先 + 关键词降级</b></td>
+    <td>
+      <code>select_relevant_memories</code> 正常走 LLM side-query 做语义匹配；一旦网络异常或 JSON 解析失败，自动降级到关键词子串匹配，保证鲁棒性。
+    </td>
+  </tr>
+</table>
+
+<h2>10. s08 vs s09 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s08</th><th>s09</th></tr>
+  <tr><td><b>记忆能力</b></td><td>无（偏好随压缩丢失）</td><td>存储 + 选择 + 加载 + 提取 + 整理</td></tr>
+  <tr><td><b>跨会话</b></td><td>每次从零开始</td><td>文件持久化，重启后仍在</td></tr>
+  <tr><td><b>SYSTEM prompt</b></td><td>硬编码字符串</td><td>build_system() 动态拼接记忆索引</td></tr>
+  <tr><td><b>每轮开始</b></td><td>仅压缩管线</td><td>加载记忆 + 保存快照 + 压缩管线</td></tr>
+  <tr><td><b>每轮结束</b></td><td>直接返回</td><td>提取记忆 (压缩前快照) + 定期整理</td></tr>
+  <tr><td><b>额外 LLM 调用</b></td><td>0</td><td>1 次 side-query (选记忆) + 轮结束时 1 次 (提取)</td></tr>
+  <tr><td><b>核心痛点</b></td><td>压缩丢细节，重启丢全部</td><td>记忆不参与压缩，跨会话保留</td></tr>
+</table>
 
 <script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
 </body>

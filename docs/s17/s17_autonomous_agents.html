@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s17 Autonomous Agents 自治Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s17 Autonomous Agents 自治Agent</h1>
+<p class="subtitle">空闲轮询 · 自动认领 · WORK → IDLE → SHUTDOWN</p>
+
+<h2>1. 问题：s16 队友被动等任务</h2>
+<div class="note">
+  <strong>痛点:</strong> s16 的每个队友等 Lead 手动分配任务。如果任务看板上有 10 个未认领任务，Lead 得手动 assign 10 次。队友应该自己看任务看板，发现没人做的任务就认领，做完再找下一个。
+</div>
+
+<h2>2. 三阶段生命周期</h2>
+<table>
+  <tr><th>阶段</th><th>行为</th><th>退出条件</th></tr>
+  <tr><td><b>WORK</b></td><td>inbox → LLM → 工具循环（bash/read/write/send_message + claim_task/complete_task）</td><td><code>stop_reason != tool_use</code></td></tr>
+  <tr><td><b>IDLE</b></td><td>每 5s 轮询 inbox + 任务板，有活就干，没活继续等</td><td>60s 超时 或 收到 shutdown_request</td></tr>
+  <tr><td><b>SHUTDOWN</b></td><td>发 summary 给 Lead，退出线程</td><td>—</td></tr>
+</table>
+
+<h2>3. 整体架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph lifecycle["队友生命周期"]
+        direction LR
+        W["WORK: inbox → LLM → 工具循环"] -->|"stop_reason != tool_use"| I["IDLE: idle_poll 每 5s 轮询"]
+        I -->|"有新任务/消息"| W
+        I -->|"60s 超时 或 shutdown"| S["SHUTDOWN: BUS.send summary → 退出"]
+    end
+
+    subgraph idle["idle_poll 轮询内容"]
+        direction LR
+        P1["1. 检查 inbox 优先"]
+        P2["2. scan_unclaimed_tasks"]
+        P3["3. 自动 claim + 回到 WORK"]
+    end
+
+    subgraph scan["scan_unclaimed_tasks 逻辑"]
+        direction LR
+        SC1["list_tasks"] --> SC2["过滤 status==pending + owner==None"]
+        SC2 --> SC3["can_start 检查 blockedBy"]
+        SC3 --> SC4["返回可认领的任务列表"]
+    end
+</div>
+
+<h2>4. idle_poll 详细流程</h2>
+<div class="mermaid">
+flowchart TD
+    A["队友进入 IDLE 阶段"] --> B["sleep 5s"]
+    B --> C["BUS.read_inbox name"]
+    C --> D{"inbox 有消息?"}
+    D -->|"是"| E{"有 shutdown_request?"}
+    E -->|"是"| F["回复 shutdown_response → SHUTDOWN"]
+    E -->|"否"| G["注入普通消息 → 回到 WORK"]
+    D -->|"否"| H["scan_unclaimed_tasks"]
+    H --> I{"有可认领的任务?"}
+    I -->|"是"| J["claim_task 自动认领 → 回到 WORK"]
+    I -->|"否"| K{"超过 60s?"}
+    K -->|"否"| B
+    K -->|"是"| L["超时 → SHUTDOWN"]
+</div>
+
+<h2>5. 关键方法速查</h2>
+<table>
+  <tr><th>方法/常量</th><th>代码行</th><th>作用</th><th>调用时机</th></tr>
+  <tr><td><code>IDLE_POLL_INTERVAL</code></td><td>~42</td><td>5 秒轮询间隔</td><td>IDLE 阶段常量</td></tr>
+  <tr><td><code>IDLE_TIMEOUT</code></td><td>~43</td><td>60 秒空闲超时</td><td>IDLE 阶段常量</td></tr>
+  <tr><td><code>idle_poll()</code></td><td>~45</td><td>空闲轮询：检查 inbox → 扫描任务板 → 自动认领</td><td>队友完成 WORK 后</td></tr>
+  <tr><td><code>scan_unclaimed_tasks()</code></td><td>~65</td><td>扫描 status==pending + owner==None + can_start 的任务</td><td>idle_poll 内部</td></tr>
+  <tr><td><code>auto_claim_and_work()</code></td><td>~75</td><td>claim 第一个可认领任务 → 注入 prompt → 回到 WORK</td><td>scan 找到任务后</td></tr>
+</table>
+
+<h2>6. 新增方法详解</h2>
+<p>s17 在 s16 基础上增加了 <strong>3 个方法 + 2 个常量</strong>，聚焦于队友自治：</p>
+<table>
+  <tr><th>层次</th><th>方法/类型</th><th>作用</th></tr>
+  <tr><td><b>常量</b></td><td><code>IDLE_POLL_INTERVAL</code></td><td>5 秒轮询间隔，控制 IDLE 阶段检查频率</td></tr>
+  <tr><td><b>常量</b></td><td><code>IDLE_TIMEOUT</code></td><td>60 秒空闲超时，超时后队友自动 SHUTDOWN</td></tr>
+  <tr><td><b>轮询层</b></td><td><code>idle_poll()</code></td><td>核心空闲循环：每 5s 检查 inbox（优先）→ 扫描任务板 → 有活回 WORK / 超时 SHUTDOWN</td></tr>
+  <tr><td><b>扫描层</b></td><td><code>scan_unclaimed_tasks()</code></td><td>list_tasks → 过滤 pending + owner==None + can_start → 返回可认领列表</td></tr>
+  <tr><td><b>认领层</b></td><td><code>auto_claim_and_work()</code></td><td>claim 第一个可认领任务 → 注入 prompt 到 messages → 回到 WORK 循环</td></tr>
+</table>
+
+<h2>7. 整体流程变化：s16 → s17</h2>
+
+<h3>s16 队友循环（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    A["WORK 循环"] --> B["完成 → 退出"]
+</div>
+
+<h3>s17 队友循环（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    A["WORK: inbox → LLM → 工具"] --> B{"stop_reason?"}
+    B -->|"tool_use"| A
+    B -->|"end_turn"| C["IDLE: idle_poll 轮询"]
+    C --> D{"有新任务/消息?"}
+    D -->|"是"| A
+    D -->|"否 超时"| E["SHUTDOWN: 发 summary"]
+    C --> F{"收到 shutdown?"}
+    F -->|"是"| E
+</div>
+
+<h3>三个关键设计细节</h3>
+<table>
+  <tr><th style="width:180px">设计点</th><th>说明</th></tr>
+  <tr><td><b>inbox 优先</b></td><td>idle_poll 先检查收件箱，再扫描任务板。Lead 的消息（如 shutdown_request）优先级高于新任务。</td></tr>
+  <tr><td><b>自动认领无需 Lead</b></td><td>队友 scan_unclaimed_tasks → claim_task → 自动注入 prompt → 回到 WORK。Lead 只需创建任务，队友自己认领。</td></tr>
+  <tr><td><b>超时保护</b></td><td>60 秒超时防止队友无限空闲。真实 CC 没有固定超时，用 idle loop 持续轮询直到收到 shutdown_request。</td></tr>
+</table>
+
+<h2>8. s16 vs s17 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s16</th><th>s17</th></tr>
+  <tr><td><b>任务分配</b></td><td>Lead 手动 assign</td><td>队友自动扫描 + 认领</td></tr>
+  <tr><td><b>队友生命周期</b></td><td>WORK → 完成退出</td><td>WORK → IDLE → SHUTDOWN</td></tr>
+  <tr><td><b>空闲行为</b></td><td>直接退出</td><td>每 5s 轮询，有活就干</td></tr>
+  <tr><td><b>可扩展性</b></td><td>N 个任务需 Lead 手动 assign N 次</td><td>队友自动认领，Lead 零操作</td></tr>
+  <tr><td><b>新增方法</b></td><td>ProtocolState + match</td><td>idle_poll + scan + auto_claim</td></tr>
+  <tr><td><b>核心痛点</b></td><td>队友被动等任务</td><td>队友应自己看板自己认领</td></tr>
+</table>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

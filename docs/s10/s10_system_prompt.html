@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s10 System Prompt 运行时组装</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s10 System Prompt 运行时组装</h1>
+<p class="subtitle">分段定义 · 按需拼接 · 确定性缓存</p>
+
+<h2>1. 整体架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph sections["PROMPT_SECTIONS 分段定义"]
+        direction LR
+        SEC1["identity<br/>你是谁, 怎么做事"]
+        SEC2["tools<br/>可用工具列表"]
+        SEC3["workspace<br/>工作目录"]
+        SEC4["memory<br/>相关记忆内容"]
+    end
+
+    subgraph context["Context 真实状态"]
+        direction LR
+        CTX1["enabled_tools<br/>已注册工具列表"]
+        CTX2["workspace<br/>当前工作目录"]
+        CTX3["memories<br/>MEMORY.md 内容"]
+    end
+
+    subgraph assemble["assemble_system_prompt context"]
+        direction LR
+        AS1["始终加载<br/>identity tools workspace"]
+        AS2["按需加载<br/>memory 存在时加载"]
+        AS1 --> AS2
+    end
+
+    subgraph cache["get_system_prompt context"]
+        direction LR
+        CA1["json.dumps context 序列化"]
+        CA2["命中缓存直接返回"]
+        CA3["未命中重新组装"]
+        CA1 --> CA2
+        CA1 --> CA3
+    end
+
+    sections --> assemble
+    context --> assemble
+    assemble --> cache
+    cache -->|"返回 system prompt"| LLM["LLM API 调用"]
+</div>
+
+<h2>2. PROMPT_SECTIONS 分段定义</h2>
+<div class="mermaid">
+flowchart LR
+    subgraph before["s09 之前: 硬编码"]
+        B1["SYSTEM = 一大段字符串: 你是谁 + 工具列表 + 工作目录 + 记忆提示 ..."]
+    end
+
+    subgraph after["s10: 分段字典"]
+        direction TB
+        A1["PROMPT_SECTIONS = {"]
+        A2["  identity: 你是谁, 怎么做事"]
+        A3["  tools: 可用工具列表"]
+        A4["  workspace: 工作目录路径"]
+        A5["  memory: 相关记忆注入提示"]
+        A6["}"]
+    end
+
+    before -->|"拆分"| after
+</div>
+
+<h2>3. 组装与缓存流程 (时序图)</h2>
+<div class="mermaid">
+sequenceDiagram
+    participant Lp as agent_loop
+    participant Ctx as update_context
+    participant Get as get_system_prompt
+    participant Asm as assemble_system_prompt
+    participant LLM as 大模型
+
+    Note over Lp,LLM: 每轮开始
+    Lp->>Ctx: updateContext context messages
+    Ctx-->>Lp: context enabledTools workspace memories
+
+    Lp->>Get: getSystemPrompt context
+    Get->>Get: key jsonDumps context
+    alt 缓存命中 key 未变
+        Get-->>Lp: 返回缓存 prompt
+    else 缓存未命中
+        Get->>Asm: assembleSystemPrompt context
+        Asm->>Asm: 始终加载 identity tools workspace
+        Asm->>Asm: memories 非空时加载 memory
+        Asm-->>Get: 拼接后的 prompt 字符串
+        Get->>Get: 存入缓存
+        Get-->>Lp: 返回新 prompt
+    end
+
+    Note over Lp,LLM: LLM 调用
+    Lp->>LLM: system messages tools
+    LLM-->>Lp: 响应 工具调用
+
+    Note over Lp,LLM: 工具执行后
+    Lp->>Ctx: updateContext context messages
+    Lp->>Get: getSystemPrompt context
+    Get-->>Lp: 缓存命中 同轮不变
+    Lp->>LLM: system messages tools
+</div>
+
+<h2>4. 四种 Section 与加载策略</h2>
+<table>
+  <tr><th>Section</th><th>加载策略</th><th>内容</th><th>判断依据</th></tr>
+  <tr><td><code>identity</code></td><td>始终</td><td>你是谁、怎么做事</td><td>始终存在</td></tr>
+  <tr><td><code>tools</code></td><td>始终</td><td>可用工具列表</td><td><code>enabled_tools</code></td></tr>
+  <tr><td><code>workspace</code></td><td>始终</td><td>工作目录</td><td>始终存在</td></tr>
+  <tr><td><code>memory</code></td><td>按需</td><td>相关记忆内容</td><td><code>.memory/MEMORY.md</code> 是否存在</td></tr>
+</table>
+
+<div class="note">
+  <strong>关键设计:</strong> section 是否加载取决于<strong>真实状态</strong>（工具是否存在、文件是否存在），不是消息里的关键词。
+</div>
+
+<h2>5. Context 状态管理</h2>
+<div class="mermaid">
+flowchart TD
+    subgraph ctx["update_context 从真实状态推导"]
+        direction LR
+        C1["enabled_tools<br/>← TOOL_HANDLERS.keys()"]
+        C2["workspace<br/>← WORKDIR"]
+        C3["memories<br/>← MEMORY.md 文件内容"]
+    end
+
+    subgraph why["为什么不用关键词?"]
+        direction LR
+        W1["关键词匹配不可靠"]
+        W2["用户说 memory 不代表有记忆文件"]
+        W3["没提 memory 不代表不需要"]
+    end
+
+    ctx --> why
+</div>
+
+<h2>6. 缓存机制详解</h2>
+<table>
+  <tr><th>层级</th><th>实现</th><th>作用</th></tr>
+  <tr>
+    <td><b>s10 教学版</b></td>
+    <td><code>json.dumps(context, sort_keys=True)</code> 做 key，相同 key 直接返回缓存</td>
+    <td>避免重复拼接字符串（同一轮多次 LLM 调用时 context 不变）</td>
+  </tr>
+  <tr>
+    <td><b>CC 真实版</b></td>
+    <td>三层缓存: lodash memoize + section 注册缓存 + API 级 prompt cache boundary</td>
+    <td>静态 section 命中 global cache，动态 section 每次重建</td>
+  </tr>
+</table>
+
+<div class="note">
+  <strong>为什么用 json.dumps 而不是 hash()?</strong> Python 内置 <code>hash()</code> 有进程随机化，不适合做稳定 cache key；遇到 list/dict 会报 <code>unhashable type</code>。
+</div>
+
+<h2>7. 关键函数速查</h2>
+<table>
+  <tr><th>函数</th><th>代码行</th><th>作用</th><th>调用时机</th></tr>
+  <tr><td><code>assemble_system_prompt()</code></td><td>52</td><td>按 context 选择并拼接 section</td><td>get_system_prompt() 缓存未命中时</td></tr>
+  <tr><td><code>get_system_prompt()</code></td><td>73</td><td>带缓存的 prompt 获取（json.dumps 做 key）</td><td>agent_loop 每轮开始 + 工具执行后</td></tr>
+  <tr><td><code>update_context()</code></td><td>158</td><td>从真实状态推导 context 字典</td><td>agent_loop 每轮开始 + 工具执行后</td></tr>
+  <tr><td><code>PROMPT_SECTIONS</code></td><td>44</td><td>分段定义的 prompt 字典（常量）</td><td>assemble_system_prompt() 读取</td></tr>
+</table>
+
+<h2>8. 新增方法详解</h2>
+
+<p>s10 在 s09 记忆系统之上增加了 <strong>3 个方法 + 1 个常量</strong>，聚焦于将硬编码 SYSTEM prompt 改为运行时组装：</p>
+
+<table>
+  <tr><th>层次</th><th>方法/常量</th><th>代码行</th><th>作用</th><th>触发时机</th></tr>
+  <tr>
+    <td rowspan="1"><b>定义层</b></td>
+    <td><code>PROMPT_SECTIONS</code></td><td>44</td><td>分段字典：identity / tools / workspace / memory 四个独立 section</td><td>常量，被 assemble 读取</td>
+  </tr>
+  <tr>
+    <td rowspan="2"><b>组装层</b></td>
+    <td><code>assemble_system_prompt()</code></td><td>52</td><td>按 context 真实状态选择 section 并拼接：始终加载 3 个 + 按需加载 memory</td><td>缓存未命中时被 get_system_prompt 调用</td>
+  </tr>
+  <tr>
+    <td><code>get_system_prompt()</code></td><td>73</td><td>确定性缓存包装：json.dumps(context) 做 key，命中直接返回，未命中调 assemble</td><td>agent_loop 每轮开始时 + 工具执行后</td>
+  </tr>
+  <tr>
+    <td><b>状态层</b></td>
+    <td><code>update_context()</code></td><td>158</td><td>从真实文件系统和工具注册表推导 context，不依赖消息关键词</td><td>agent_loop 每轮开始 + 工具执行后</td>
+  </tr>
+</table>
+
+<h2>9. 整体流程变化：s09 → s10</h2>
+
+<h3>s09 流程（之前）</h3>
+<div class="mermaid">
+flowchart LR
+    B1["build_system() 读索引"] --> B2["硬编码 SYSTEM 字符串"]
+    B2 --> L1["LLM 调用"]
+    L1 --> T1["tool_use 循环"]
+    T1 --> E1["结束"]
+</div>
+
+<h3>s10 流程（现在）</h3>
+<div class="mermaid">
+flowchart TD
+    subgraph begin["每轮开始"]
+        direction LR
+        B1["update_context context messages"] --> B2["get_system_prompt context"]
+        B2 --> B3{"缓存命中?"}
+        B3 -->|"是"| B4["返回缓存 prompt"]
+        B3 -->|"否"| B5["assemble_system_prompt"]
+        B5 --> B6["始终加载 identity tools workspace"]
+        B6 --> B7{"memories 非空?"}
+        B7 -->|"是"| B8["加载 memory section"]
+        B7 -->|"否"| B9["跳过 memory section"]
+        B8 --> B10["存入缓存"]
+        B9 --> B10
+    end
+
+    subgraph llm["LLM 调用"]
+        L1["system = 组装后的 prompt"]
+    end
+
+    subgraph tools["tool_use 循环"]
+        T1["bash read_file write_file"]
+    end
+
+    subgraph after["工具执行后"]
+        direction LR
+        A1["update_context"] --> A2["get_system_prompt"]
+        A2 --> A3["通常命中缓存 同轮 context 不变"]
+    end
+
+    begin --> llm --> tools --> after
+    after -->|"继续循环"| llm
+</div>
+
+<h2>10. s09 vs s10 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s09</th><th>s10</th></tr>
+  <tr><td><b>prompt 方式</b></td><td>硬编码 SYSTEM 字符串</td><td>PROMPT_SECTIONS + assemble_system_prompt</td></tr>
+  <tr><td><b>缓存</b></td><td>无</td><td>get_system_prompt（json.dumps 检测 + 缓存）</td></tr>
+  <tr><td><b>状态感知</b></td><td>无（prompt 固定不变）</td><td>update_context 从真实状态推导</td></tr>
+  <tr><td><b>修改影响</b></td><td>改一处可能影响全局</td><td>每个 section 独立维护</td></tr>
+  <tr><td><b>项目切换</b></td><td>需重写整个 prompt</td><td>只改 context 来源，section 结构不变</td></tr>
+  <tr><td><b>新增方法</b></td><td>11 个（记忆系统）</td><td>3 个 + 1 常量（prompt 组装）</td></tr>
+  <tr><td><b>核心痛点</b></td><td>记忆随压缩丢失</td><td>prompt 硬编码，不可维护</td></tr>
+</table>
+
+<div class="note">
+  <strong>s09 → s10 的关系:</strong> s09 提供记忆系统（.memory/ 文件），s10 的 context 会检查 MEMORY.md 是否存在来决定是否加载 memory section。两层协作：s09 管记忆的读写，s10 管 prompt 的组装时机。
+</div>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 950" font-family="Menlo, Monaco, monospace">
+  <defs><marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2563eb"/></marker></defs>
+  <rect width="1400" height="950" fill="#f8fafc" rx="8"/>
+  <rect x="0" y="0" width="1400" height="44" fill="#1e293b" rx="8"/>
+  <rect x="0" y="32" width="1400" height="12" fill="#1e293b"/>
+  <text x="700" y="28" fill="#e2e8f0" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">s17 Autonomous Agents · 自己看板, 自己认领</text>
+  <rect x="30" y="60" width="336" height="26" fill="#64748b" rx="6"/>
+  <rect x="30" y="73" width="336" height="13" fill="#64748b"/>
+  <text x="198" y="78" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">1. 三阶段生命周期: WORK → IDLE → SHUTDOWN</text>
+  <rect x="30" y="92" width="1340" height="163" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="293" y="102" width="270" height="143" fill="#0f172a" rx="5"/>
+  <text x="313" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">WORK:</text>
+  <text x="313" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  inbox → LLM → 工具循环</text>
+  <text x="313" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  bash/read/write/send</text>
+  <text x="313" y="176" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  + claim_task/complete_task</text>
+  <text x="313" y="193" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  退出: stop_reason</text>
+  <text x="313" y="210" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">         != tool_use</text>
+  <rect x="593" y="102" width="254" height="143" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="613" y="125" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">IDLE:</text>
+  <text x="613" y="142" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  idle_poll 每 5s 轮询</text>
+  <text x="613" y="159" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  1. 检查 inbox (优先)</text>
+  <text x="613" y="176" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  2. scan_unclaimed_tasks</text>
+  <text x="613" y="193" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  3. 有活 → 回到 WORK</text>
+  <text x="613" y="210" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  退出: 60s 超时</text>
+  <text x="613" y="227" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">       或 shutdown_request</text>
+  <rect x="877" y="102" width="230" height="143" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="897" y="125" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">SHUTDOWN:</text>
+  <text x="897" y="142" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  BUS.send summary</text>
+  <text x="897" y="159" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  退出 daemon 线程</text>
+  <text x="897" y="176" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="897" y="193" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">IDLE_POLL_INTERVAL = 5s</text>
+  <text x="897" y="210" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">IDLE_TIMEOUT = 60s</text>
+  <line x1="700" y1="265" x2="700" y2="281" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="287" width="292" height="26" fill="#2563eb" rx="6"/>
+  <rect x="30" y="300" width="292" height="13" fill="#2563eb"/>
+  <text x="176" y="305" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">2. idle_poll + scan_unclaimed_tasks</text>
+  <rect x="30" y="319" width="1340" height="265" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="262" y="329" width="285" height="245" fill="#0f172a" rx="5"/>
+  <text x="282" y="352" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def idle_poll(name, messages):</text>
+  <text x="282" y="369" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  for _ in range(12):</text>
+  <text x="282" y="386" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    sleep(5)</text>
+  <text x="282" y="403" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    inbox = BUS.read(name)</text>
+  <text x="282" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    if inbox:</text>
+  <text x="282" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      if shutdown_request:</text>
+  <text x="282" y="454" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">        return shutdown</text>
+  <text x="282" y="471" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      inject → return work</text>
+  <text x="282" y="488" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    tasks = scan_unclaimed()</text>
+  <text x="282" y="505" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    if tasks:</text>
+  <text x="282" y="522" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      claim + inject prompt</text>
+  <text x="282" y="539" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      return work</text>
+  <text x="282" y="556" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return timeout</text>
+  <rect x="576" y="329" width="278" height="245" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="596" y="352" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">def scan_unclaimed_tasks():</text>
+  <text x="596" y="369" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  all = list_tasks()</text>
+  <text x="596" y="386" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  unclaimed = [t for t in all</text>
+  <text x="596" y="403" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    if t.status == pending</text>
+  <text x="596" y="420" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    and t.owner is None</text>
+  <text x="596" y="437" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    and can_start(t.id)]</text>
+  <text x="596" y="454" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  return unclaimed</text>
+  <text x="596" y="471" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="596" y="488" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">过滤条件:</text>
+  <text x="596" y="505" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  · pending 状态</text>
+  <text x="596" y="522" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  · 无 owner (未被认领)</text>
+  <text x="596" y="539" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  · blockedBy 全部完成</text>
+  <rect x="884" y="329" width="254" height="245" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="904" y="352" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">关键设计:</text>
+  <text x="904" y="369" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="904" y="386" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· inbox 优先于任务板</text>
+  <text x="904" y="403" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  Lead 消息优先级最高</text>
+  <text x="904" y="420" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 自动认领无需 Lead</text>
+  <text x="904" y="437" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  claim_task → 注入 prompt</text>
+  <text x="904" y="454" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  → 回到 WORK 循环</text>
+  <text x="904" y="471" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 超时保护</text>
+  <text x="904" y="488" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  60s 无活自动退出</text>
+  <text x="904" y="505" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">· 真实 CC 无固定超时</text>
+  <text x="904" y="522" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  用 idle loop 持续轮询</text>
+  <line x1="700" y1="594" x2="700" y2="610" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="616" width="292" height="26" fill="#7c3aed" rx="6"/>
+  <rect x="30" y="629" width="292" height="13" fill="#7c3aed"/>
+  <text x="176" y="634" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">3. 队友自治循环: 不再依赖 Lead 分配</text>
+  <rect x="30" y="648" width="1340" height="41" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="160" y="648" width="159" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="180" y="671" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">WORK: LLM+工具</text>
+  <rect x="349" y="648" width="190" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="369" y="671" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">IDLE: idle_poll 5s</text>
+  <rect x="569" y="648" width="159" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="589" y="671" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">scan_unclaimed</text>
+  <rect x="758" y="648" width="127" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="778" y="671" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">auto claim</text>
+  <rect x="915" y="648" width="120" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="935" y="671" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">回到 WORK</text>
+  <rect x="1065" y="648" width="175" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="1085" y="671" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">60s超时→SHUTDOWN</text>
+  <rect x="30" y="704" width="1340" height="160" fill="#1e293b" rx="8"/>
+  <text x="700" y="739" fill="#fbbf24" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">空闲轮询 · 自动认领 · 三阶段生命周期</text>
+  <rect x="80" y="769" width="480" height="114" fill="#334155" rx="6"/>
+  <text x="100" y="797" fill="#93c5fd" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">核心变化:</text>
+  <text x="100" y="819" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="841" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">s16: 队友完成 → 退出线程, 等 Lead 下次 spawn</text>
+  <text x="100" y="863" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">s17: 队友完成 → IDLE 轮询 → 自己找活 → 自动 claim → 回到 WORK</text>
+  <text x="100" y="885" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">Lead 只需 create_task, 队友自己 scan + claim + complete</text>
+</svg>

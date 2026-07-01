@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>s20 Comprehensive Agent 综合Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  body { max-width: 1100px; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f8fafc; color: #1e293b; }
+  h1 { text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #64748b; margin-bottom: 30px; font-size: 14px; }
+  h2 { color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 6px; margin-top: 40px; }
+  .mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; margin: 16px 0; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; margin: 20px 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  th { background: #1e293b; color: #e2e8f0; padding: 12px 16px; text-align: left; font-size: 13px; }
+  td { padding: 10px 16px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  code { background: #f1f5f9; padding: 2px 6px; border-radius: 3px; font-size: 12px; }
+  .note { background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<h1>s20 Comprehensive Agent 综合Agent</h1>
+<p class="subtitle">机制很多，循环一个 · 全部组件归位到同一个 while True</p>
+
+<h2>1. 问题：19 个机制散落在 19 个 demo 里</h2>
+<div class="note">
+  <strong>痛点:</strong> 前 19 章每章只加一个机制——这样适合学习，但真实 Agent 不会只带一个机制运行。一个能长期工作的 coding agent 需要同时拥有：工具分发、权限边界、hooks 扩展点、todo 计划、任务图、技能、记忆、系统 prompt、压缩、错误恢复、后台任务、cron 调度、团队、协议、自治认领、worktree 隔离、MCP 外部工具。难点不是把功能堆起来，而是看清楚它们都挂在循环的哪个位置。
+</div>
+
+<h2>2. 组件在循环中的位置</h2>
+<table>
+  <tr><th>位置</th><th>组件</th><th>作用</th></tr>
+  <tr><td><b>用户输入前后</b></td><td><code>UserPromptSubmit</code> hooks</td><td>记录、注入、审计用户输入</td></tr>
+  <tr><td><b>LLM 前</b></td><td>cron queue</td><td>把定时触发的 prompt 注入 messages</td></tr>
+  <tr><td><b>LLM 前</b></td><td>background notifications</td><td>后台任务完成后以 task_notification 注入</td></tr>
+  <tr><td><b>LLM 前</b></td><td>compaction pipeline</td><td>先压大输出 → 裁历史 → 压旧 tool_result → 必要时摘要</td></tr>
+  <tr><td><b>LLM 前</b></td><td>memory / skills / MCP state</td><td>组装 system prompt，让模型看到当前能力和长期上下文</td></tr>
+  <tr><td><b>LLM 调用</b></td><td>error recovery</td><td>429/529 重试，max_tokens 升级，prompt too long 触发 reactive compact</td></tr>
+  <tr><td><b>工具执行前</b></td><td><code>PreToolUse</code> hooks + permission</td><td>拦截危险命令、写越界、破坏性 MCP 工具</td></tr>
+  <tr><td><b>工具分发</b></td><td><code>assemble_tool_pool</code></td><td>组装内置工具和 MCP 动态工具</td></tr>
+  <tr><td><b>工具执行时</b></td><td>background dispatch</td><td>慢 bash 操作放 daemon thread，主循环先返回占位结果</td></tr>
+  <tr><td><b>工具执行后</b></td><td><code>PostToolUse</code> hooks</td><td>大输出告警、日志等后处理</td></tr>
+  <tr><td><b>返回循环</b></td><td>tool_result</td><td>每个 tool_use 对应一个 tool_result，再回到下一轮</td></tr>
+  <tr><td><b>停止时</b></td><td><code>Stop</code> hooks</td><td>统计、清理、审计</td></tr>
+</table>
+
+<h2>3. 完整 Harness 架构</h2>
+<div class="mermaid">
+flowchart TB
+    subgraph pre_llm["LLM 之前"]
+        direction LR
+        P1["UserPromptSubmit hooks"]
+        P2["cron queue 注入"]
+        P3["background notifications"]
+        P4["compaction pipeline"]
+        P5["assemble_system_prompt: memory + skills + MCP"]
+    end
+
+    subgraph llm_call["LLM 调用"]
+        direction LR
+        L1["error recovery: 429/529 重试"]
+        L2["max_tokens 升级"]
+        L3["prompt too long → reactive compact"]
+    end
+
+    subgraph tool_exec["工具执行"]
+        direction LR
+        T1["PreToolUse hooks + permission"]
+        T2["assemble_tool_pool: BUILTIN + MCP"]
+        T3["TOOL_HANDLERS / MCP handlers"]
+        T4["background dispatch 慢操作"]
+        T5["PostToolUse hooks"]
+    end
+
+    subgraph post["返回 / 停止"]
+        direction LR
+        R1["tool_result → 下一轮"]
+        R2["Stop hooks: 统计 + 清理"]
+    end
+
+    pre_llm --> llm_call --> tool_exec --> post
+    post -->|"有 tool_use"| pre_llm
+</div>
+
+<h2>4. agent_loop 核心循环（完整版）</h2>
+<div class="mermaid">
+flowchart TD
+    A["用户输入"] --> B["trigger_hooks UserPromptSubmit"]
+    B --> C["consume_cron_queue: 注入定时任务"]
+    C --> D["consume_background_notifications"]
+    D --> E["compact_history: 压缩管线"]
+    E --> F["assemble_system_prompt: memory + skills + MCP"]
+    F --> G["assemble_tool_pool: BUILTIN + MCP tools"]
+    G --> H["LLM call with error recovery"]
+    H --> I{"has tool_use?"}
+    I -->|"否"| J["trigger_hooks Stop → 返回"]
+    I -->|"是"| K["for each tool_use block:"]
+    K --> L["trigger_hooks PreToolUse + permission"]
+    L --> M{"blocked?"}
+    M -->|"是"| N["返回 blocked 结果"]
+    M -->|"否"| O{"慢操作?"}
+    O -->|"是"| P["background dispatch → placeholder"]
+    O -->|"否"| Q["TOOL_HANDLER / MCP handler 执行"]
+    Q --> R["trigger_hooks PostToolUse"]
+    P --> R
+    N --> S["追加 tool_result 到 messages"]
+    R --> S
+    S --> C
+</div>
+
+<h2>5. 关键组件速查</h2>
+<table>
+  <tr><th>组件</th><th>代码行</th><th>作用</th><th>位置</th></tr>
+  <tr><td><code>HOOKS</code></td><td>~878</td><td>dict: event → handler 列表，4 种事件类型</td><td>全局注册表</td></tr>
+  <tr><td><code>trigger_hooks()</code></td><td>~886</td><td>按事件名触发所有注册的 handler</td><td>循环各节点</td></tr>
+  <tr><td><code>register_hook()</code></td><td>~890</td><td>注册 hook handler 到指定事件</td><td>启动时</td></tr>
+  <tr><td><code>assemble_system_prompt()</code></td><td>~360</td><td>组装身份 + 工具说明 + workspace + skills catalog + memory + MCP</td><td>每轮 LLM 前</td></tr>
+  <tr><td><code>assemble_tool_pool()</code></td><td>~1629</td><td>BUILTIN_TOOLS + MCP 工具 → 统一工具池</td><td>每轮 LLM 前</td></tr>
+  <tr><td><code>compact_history()</code></td><td>~1183</td><td>tool_result_budget → snip_compact → micro_compact → compact_history</td><td>每轮 LLM 前</td></tr>
+  <tr><td><code>consume_cron_queue()</code></td><td>~1496</td><td>取出到期的 cron job，注入 messages</td><td>每轮 LLM 前</td></tr>
+  <tr><td><code>background_tasks</code></td><td>~1264</td><td>dict: bg_id → task 状态，追踪后台任务</td><td>全局状态</td></tr>
+</table>
+
+<h2>6. 内置工具池（27 个工具）</h2>
+<table>
+  <tr><th>类别</th><th>工具</th><th>来源</th></tr>
+  <tr><td><b>文件操作</b></td><td><code>bash, read_file, write_file, edit_file, glob</code></td><td>s01-s02</td></tr>
+  <tr><td><b>计划</b></td><td><code>todo_write, task</code></td><td>s05-s06</td></tr>
+  <tr><td><b>技能/记忆</b></td><td><code>load_skill</code></td><td>s07</td></tr>
+  <tr><td><b>压缩</b></td><td><code>compact</code></td><td>s08</td></tr>
+  <tr><td><b>任务图</b></td><td><code>create_task, list_tasks, get_task, claim_task, complete_task</code></td><td>s12</td></tr>
+  <tr><td><b>后台/cron</b></td><td><code>schedule_cron, list_crons, cancel_cron</code></td><td>s13-s14</td></tr>
+  <tr><td><b>团队</b></td><td><code>spawn_teammate, send_message, check_inbox</code></td><td>s15</td></tr>
+  <tr><td><b>协议</b></td><td><code>request_shutdown, request_plan, review_plan</code></td><td>s16</td></tr>
+  <tr><td><b>隔离</b></td><td><code>create_worktree, remove_worktree, keep_worktree</code></td><td>s18</td></tr>
+  <tr><td><b>外部</b></td><td><code>connect_mcp</code></td><td>s19</td></tr>
+</table>
+
+<h2>7. Hooks 系统详解</h2>
+<p>s20 在 s19 基础上增加了 <strong>4 种 hook 事件 + 5 个内置 handler</strong>，权限不写死在工具执行行里，而是作为 PreToolUse hook：</p>
+<table>
+  <tr><th>Hook 事件</th><th>触发时机</th><th>内置 handler</th><th>作用</th></tr>
+  <tr><td><code>UserPromptSubmit</code></td><td>用户输入后、LLM 前</td><td>user_prompt_hook</td><td>记录 workspace 信息</td></tr>
+  <tr><td><code>PreToolUse</code></td><td>每个工具执行前</td><td>permission_hook + log_hook</td><td>权限拦截 + 调用日志</td></tr>
+  <tr><td><code>PostToolUse</code></td><td>每个工具执行后</td><td>large_output_hook</td><td>大输出告警（>10000 字符）</td></tr>
+  <tr><td><code>Stop</code></td><td>本轮无 tool_use 时</td><td>stop_hook</td><td>统计 tool_result 数量</td></tr>
+</table>
+
+<h2>8. 两层计划系统</h2>
+<table>
+  <tr><th></th><th>todo_write</th><th>task graph</th></tr>
+  <tr><td><b>定位</b></td><td>当前会话内轻量计划</td><td>跨会话、可依赖、可认领的任务</td></tr>
+  <tr><td><b>存储</b></td><td>内存 CURRENT_TODOS</td><td>文件 .tasks/task_*.json</td></tr>
+  <tr><td><b>依赖</b></td><td>无</td><td>blockedBy 依赖图</td></tr>
+  <tr><td><b>协作</b></td><td>单人</td><td>团队：claim + worktree 绑定</td></tr>
+  <tr><td><b>来源</b></td><td>s05</td><td>s12</td></tr>
+</table>
+
+<h2>9. 两种 Delegation</h2>
+<table>
+  <tr><th></th><th>task (子 agent)</th><th>spawn_teammate (队友)</th></tr>
+  <tr><td><b>生命周期</b></td><td>一次性，用完销毁</td><td>持久线程，WORK → IDLE → SHUTDOWN</td></tr>
+  <tr><td><b>上下文</b></td><td>独立 messages[]，中间过程丢弃</td><td>通过 MessageBus 收发消息</td></tr>
+  <tr><td><b>返回</b></td><td>只返回最终摘要</td><td>持续通信，可多轮协作</td></tr>
+  <tr><td><b>用途</b></td><td>上下文隔离</td><td>长期并行协作</td></tr>
+  <tr><td><b>来源</b></td><td>s06</td><td>s15-s18</td></tr>
+</table>
+
+<h2>10. s19 vs s20 对比总结</h2>
+<table>
+  <tr><th>维度</th><th>s19</th><th>s20</th></tr>
+  <tr><td><b>工具池</b></td><td>内置 + MCP</td><td>内置 + MCP，补齐 s01-s18 全部工具（27 个）</td></tr>
+  <tr><td><b>权限</b></td><td>教学主体省略</td><td>PreToolUse hook 中执行</td></tr>
+  <tr><td><b>hooks</b></td><td>省略</td><td>UserPromptSubmit / PreToolUse / PostToolUse / Stop</td></tr>
+  <tr><td><b>todo</b></td><td>省略</td><td>todo_write + reminder</td></tr>
+  <tr><td><b>skill</b></td><td>省略</td><td>catalog in system prompt + load_skill</td></tr>
+  <tr><td><b>compact</b></td><td>省略</td><td>LLM 前压缩 + compact 工具 + reactive compact</td></tr>
+  <tr><td><b>error recovery</b></td><td>简化 try/except</td><td>retry / max_tokens 升级 / prompt too long</td></tr>
+  <tr><td><b>background</b></td><td>省略</td><td>慢操作后台线程 + task notification</td></tr>
+  <tr><td><b>cron</b></td><td>省略</td><td>daemon scheduler + durable jobs</td></tr>
+  <tr><td><b>multi-agent</b></td><td>保留</td><td>保留；队友使用隔离目录下的基础工具</td></tr>
+  <tr><td><b>worktree</b></td><td>保留</td><td>保留</td></tr>
+  <tr><td><b>MCP</b></td><td>新增</td><td>保留，作为最终工具池的一部分</td></tr>
+  <tr><td><b>核心变化</b></td><td>外部工具接入</td><td>全部机制归位到一个循环</td></tr>
+</table>
+
+<div class="note">
+  <strong>终点亦是起点:</strong> 从 s01 到 s20，核心始终没变——<code>while True: response = LLM(messages, tools); if not has_tool_use: return; execute_tools(); messages.append(tool_results)</code>。Claude Code 的复杂性不是"另一个 agent 大脑"，而是一个成熟 harness 的复杂性。模型负责判断和行动选择；harness 负责把环境、工具、权限、记忆、团队和外部能力组织好。<strong>机制很多，循环一个。</strong>
+</div>
+
+<script>mermaid.initialize({startOnLoad: true, theme: 'default'});</script>
+</body>
+</html>

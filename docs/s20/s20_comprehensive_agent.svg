@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1050" font-family="Menlo, Monaco, monospace">
+  <defs><marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2563eb"/></marker></defs>
+  <rect width="1400" height="1050" fill="#f8fafc" rx="8"/>
+  <rect x="0" y="0" width="1400" height="44" fill="#1e293b" rx="8"/>
+  <rect x="0" y="32" width="1400" height="12" fill="#1e293b"/>
+  <text x="700" y="28" fill="#e2e8f0" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">s20 Comprehensive Agent · 机制很多, 循环一个 · 全部组件归位</text>
+  <rect x="30" y="60" width="430" height="26" fill="#64748b" rx="6"/>
+  <rect x="30" y="73" width="430" height="13" fill="#64748b"/>
+  <text x="245" y="78" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">1. 问题: 19个机制散落 → 全部归位到一个 while True 循环</text>
+  <rect x="30" y="92" width="1340" height="244" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="160" y="102" width="334" height="224" fill="#fef2f2" rx="5" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="180" y="125" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">s01-s19 问题:</text>
+  <text x="180" y="142" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="180" y="159" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">每章只加一个机制:</text>
+  <text x="180" y="176" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">s03 权限, s04 hooks, s05 todo,</text>
+  <text x="180" y="193" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">s07 技能, s08 压缩, s09 记忆,</text>
+  <text x="180" y="210" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">s10 prompt, s11 错误恢复,</text>
+  <text x="180" y="227" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">s12 任务图, s13 后台, s14 cron,</text>
+  <text x="180" y="244" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">s15 团队, s16 协议, s17 自治,</text>
+  <text x="180" y="261" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">s18 worktree, s19 MCP</text>
+  <text x="180" y="278" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="180" y="295" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">→ 散落在19个demo里</text>
+  <text x="180" y="312" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">→ 真实Agent需要全部同时运行</text>
+  <rect x="524" y="102" width="352" height="224" fill="#1e293b" rx="5"/>
+  <text x="544" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">S20 方案: 全部归位到一个循环</text>
+  <text x="544" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="544" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">while True:</text>
+  <text x="544" y="176" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  UserPromptSubmit hooks</text>
+  <text x="544" y="193" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  cron/background 注入</text>
+  <text x="544" y="210" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  compact + system prompt</text>
+  <text x="544" y="227" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  assemble_tool_pool</text>
+  <text x="544" y="244" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  LLM + error recovery</text>
+  <text x="544" y="261" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  PreToolUse + permission</text>
+  <text x="544" y="278" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  execute + PostToolUse</text>
+  <text x="544" y="295" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  tool_result → 下一轮</text>
+  <text x="544" y="312" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  Stop hooks → 返回</text>
+  <rect x="906" y="102" width="223" height="224" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="926" y="125" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">27 个内置工具:</text>
+  <text x="926" y="142" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="926" y="159" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">bash, read, write, edit,</text>
+  <text x="926" y="176" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">glob, todo_write, task,</text>
+  <text x="926" y="193" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">load_skill, compact,</text>
+  <text x="926" y="210" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">create/list/get/claim/</text>
+  <text x="926" y="227" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">complete_task,</text>
+  <text x="926" y="244" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">schedule/list/cancel_cron,</text>
+  <text x="926" y="261" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">spawn/send/check_inbox,</text>
+  <text x="926" y="278" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">request_shutdown/plan,</text>
+  <text x="926" y="295" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">review_plan,</text>
+  <text x="926" y="312" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">create/remove/keep_worktree,</text>
+  <text x="926" y="329" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">connect_mcp + MCP tools</text>
+  <line x1="700" y1="346" x2="700" y2="362" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="368" width="412" height="26" fill="#2563eb" rx="6"/>
+  <rect x="30" y="381" width="412" height="13" fill="#2563eb"/>
+  <text x="236" y="386" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">2. agent_loop 核心循环: 组件挂在循环的哪个位置</text>
+  <rect x="30" y="400" width="1340" height="251" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="248" y="410" width="304" height="231" fill="#0f172a" rx="5"/>
+  <text x="268" y="433" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">LLM 之前:</text>
+  <text x="268" y="450" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  UserPromptSubmit hooks</text>
+  <text x="268" y="467" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  consume_cron_queue()</text>
+  <text x="268" y="484" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  background notifications</text>
+  <text x="268" y="501" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  compact_history()</text>
+  <text x="268" y="518" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    tool_result_budget</text>
+  <text x="268" y="535" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    snip_compact</text>
+  <text x="268" y="552" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    micro_compact</text>
+  <text x="268" y="569" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    compact_history</text>
+  <text x="268" y="586" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  assemble_system_prompt</text>
+  <text x="268" y="603" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    identity + tools +</text>
+  <text x="268" y="620" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    skills + memory + MCP</text>
+  <text x="268" y="637" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  assemble_tool_pool()</text>
+  <rect x="582" y="410" width="226" height="231" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="602" y="433" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">LLM 调用:</text>
+  <text x="602" y="450" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="602" y="467" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  error recovery:</text>
+  <text x="602" y="484" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    429 → 指数退避重试</text>
+  <text x="602" y="501" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    529 → 退避+fallback</text>
+  <text x="602" y="518" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    max_tokens → 升级</text>
+  <text x="602" y="535" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    prompt too long →</text>
+  <text x="602" y="552" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">      reactive compact</text>
+  <text x="602" y="569" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="602" y="586" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  response = LLM(</text>
+  <text x="602" y="603" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">    messages, tools)</text>
+  <text x="602" y="620" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="602" y="637" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">  has tool_use block?</text>
+  <rect x="838" y="410" width="262" height="231" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="858" y="433" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">工具执行:</text>
+  <text x="858" y="450" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="858" y="467" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  for each tool_use block:</text>
+  <text x="858" y="484" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    PreToolUse hooks</text>
+  <text x="858" y="501" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">      permission_hook 拦截</text>
+  <text x="858" y="518" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">      log_hook 记录</text>
+  <text x="858" y="535" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    if blocked: skip</text>
+  <text x="858" y="552" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    if 慢操作:</text>
+  <text x="858" y="569" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">      background dispatch</text>
+  <text x="858" y="586" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    else: handler 执行</text>
+  <text x="858" y="603" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">    PostToolUse hooks</text>
+  <text x="858" y="620" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">      large_output_hook</text>
+  <text x="858" y="637" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  tool_result → messages</text>
+  <line x1="700" y1="661" x2="700" y2="677" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="683" width="363" height="26" fill="#7c3aed" rx="6"/>
+  <rect x="30" y="696" width="363" height="13" fill="#7c3aed"/>
+  <text x="211" y="701" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">3. Hooks 系统: 4种事件 + 5个内置handler</text>
+  <rect x="30" y="715" width="1340" height="41" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="22" y="715" width="228" height="41" fill="#fce7f3" rx="5" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="42" y="738" fill="#9d174d" font-size="11" font-family="Menlo, Monaco, monospace">UserPromptSubmit: 记录</text>
+  <rect x="280" y="715" width="254" height="41" fill="#fce7f3" rx="5" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="300" y="738" fill="#9d174d" font-size="11" font-family="Menlo, Monaco, monospace">PreToolUse: permission+log</text>
+  <rect x="564" y="715" width="254" height="41" fill="#fce7f3" rx="5" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="584" y="738" fill="#9d174d" font-size="11" font-family="Menlo, Monaco, monospace">PostToolUse: large_output</text>
+  <rect x="848" y="715" width="252" height="41" fill="#fce7f3" rx="5" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="868" y="738" fill="#9d174d" font-size="11" font-family="Menlo, Monaco, monospace">Stop: 统计 tool_results</text>
+  <rect x="1130" y="715" width="248" height="41" fill="#fce7f3" rx="5" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="1150" y="738" fill="#9d174d" font-size="11" font-family="Menlo, Monaco, monospace">register_hook 注册</text>
+  <rect x="30" y="771" width="1340" height="200" fill="#1e293b" rx="8"/>
+  <text x="700" y="806" fill="#fbbf24" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">两层计划 · 两种 Delegation · 压缩管线 · 错误恢复 · 后台+Cron · Worktree+MCP</text>
+  <rect x="60" y="836" width="618" height="114" fill="#334155" rx="6"/>
+  <text x="80" y="864" fill="#93c5fd" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">核心不变:</text>
+  <text x="80" y="886" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="80" y="908" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">while True: LLM → has tool_use? → execute → tool_result → next</text>
+  <text x="80" y="930" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">模型负责判断和行动; harness 负责环境+工具+权限+记忆+团队+外部能力</text>
+  <rect x="708" y="836" width="670" height="114" fill="#334155" rx="6"/>
+  <text x="728" y="864" fill="#93c5fd" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">S20 覆盖的 s01-s19 全部机制:</text>
+  <text x="728" y="886" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="728" y="908" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">s01 loop, s02 tools, s03 permission, s04 hooks, s05 todo, s06 subagent,</text>
+  <text x="728" y="930" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">s07 skills, s08 compact, s09 memory, s10 prompt, s11 recovery, s12 tasks,</text>
+  <text x="728" y="952" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">s13 background, s14 cron, s15 teams, s16 protocols, s17 autonomous,</text>
+  <text x="728" y="974" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">s18 worktree, s19 MCP → 全部归位到一个循环</text>
+</svg>

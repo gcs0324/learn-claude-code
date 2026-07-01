@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1050" font-family="Menlo, Monaco, monospace">
+  <defs><marker id="ab" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#2563eb"/></marker></defs>
+  <rect width="1400" height="1050" fill="#f8fafc" rx="8"/>
+  <rect x="0" y="0" width="1400" height="44" fill="#1e293b" rx="8"/>
+  <rect x="0" y="32" width="1400" height="12" fill="#1e293b"/>
+  <text x="700" y="28" fill="#e2e8f0" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">s13 Background Tasks · daemon 线程异步执行, Agent 不阻塞</text>
+  <rect x="30" y="60" width="249" height="26" fill="#64748b" rx="6"/>
+  <rect x="30" y="73" width="249" height="13" fill="#64748b"/>
+  <text x="154" y="78" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">1. 问题: 同步 bash 阻塞 Agent</text>
+  <rect x="30" y="92" width="1340" height="197" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="348" y="102" width="206" height="177" fill="#0f172a" rx="5"/>
+  <text x="368" y="125" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">s12 同步执行:</text>
+  <text x="368" y="142" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="368" y="159" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">pip install torch</text>
+  <text x="368" y="176" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  → Agent 等 10 分钟</text>
+  <text x="368" y="193" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">npm run build</text>
+  <text x="368" y="210" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  → Agent 等 3 分钟</text>
+  <text x="368" y="227" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="368" y="244" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">LLM 按 token 计费</text>
+  <text x="368" y="261" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">空转 = 浪费</text>
+  <rect x="584" y="102" width="214" height="177" fill="#fef2f2" rx="5" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="604" y="125" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">类比: 洗衣机</text>
+  <text x="604" y="142" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="604" y="159" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">衣服扔进去 → 按下启动</text>
+  <text x="604" y="176" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">然后去干别的</text>
+  <text x="604" y="193" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">做饭 回消息 看论文</text>
+  <text x="604" y="210" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">30 分钟后洗衣机提醒</text>
+  <text x="604" y="227" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="604" y="244" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">不会站在前面干等</text>
+  <rect x="828" y="102" width="223" height="177" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="848" y="125" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">解决思路:</text>
+  <text x="848" y="142" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="848" y="159" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">慢操作 → daemon 线程</text>
+  <text x="848" y="176" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">Agent 继续处理其他任务</text>
+  <text x="848" y="193" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">后台完成后 → 注入通知</text>
+  <text x="848" y="210" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="848" y="227" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">判断: 模型显式请求优先</text>
+  <text x="848" y="244" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">      关键词启发式兜底</text>
+  <line x1="700" y1="299" x2="700" y2="315" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="321" width="300" height="26" fill="#2563eb" rx="6"/>
+  <rect x="30" y="334" width="300" height="13" fill="#2563eb"/>
+  <text x="180" y="339" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">2. should_run_background(): 双重判断</text>
+  <rect x="30" y="353" width="1340" height="214" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="313" y="363" width="262" height="194" fill="#0f172a" rx="5"/>
+  <text x="333" y="386" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def should_run_background(</text>
+  <text x="333" y="403" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    tool_name, tool_input):</text>
+  <text x="333" y="420" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  # 模型显式请求 (优先)</text>
+  <text x="333" y="437" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  if tool_input.get(</text>
+  <text x="333" y="454" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "run_in_background"):</text>
+  <text x="333" y="471" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    return True</text>
+  <text x="333" y="488" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  # 启发式兜底</text>
+  <text x="333" y="505" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return is_slow_operation(</text>
+  <text x="333" y="522" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    tool_name, tool_input)</text>
+  <rect x="605" y="363" width="246" height="194" fill="#dbeafe" rx="5" stroke="#60a5fa" stroke-width="1.5"/>
+  <text x="625" y="386" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">is_slow_operation():</text>
+  <text x="625" y="403" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="625" y="420" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">关键词列表:</text>
+  <text x="625" y="437" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">install build test deploy</text>
+  <text x="625" y="454" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">compile docker pip npm</text>
+  <text x="625" y="471" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">cargo pytest make</text>
+  <text x="625" y="488" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="625" y="505" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">命令包含任一关键词</text>
+  <text x="625" y="522" fill="#1e40af" font-size="11" font-family="Menlo, Monaco, monospace">→ 判定为慢操作</text>
+  <rect x="881" y="363" width="206" height="194" fill="#f0fdf4" rx="5" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="901" y="386" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">CC 的真实做法:</text>
+  <text x="901" y="403" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="901" y="420" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">bash 工具 schema 有</text>
+  <text x="901" y="437" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">run_in_background:</text>
+  <text x="901" y="454" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">  type: boolean</text>
+  <text x="901" y="471" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="901" y="488" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">模型自己决定哪些命令</text>
+  <text x="901" y="505" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">丢后台, 不靠关键词猜</text>
+  <text x="901" y="522" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="901" y="539" fill="#166534" font-size="11" font-family="Menlo, Monaco, monospace">教学版保留启发式兜底</text>
+  <line x1="700" y1="577" x2="700" y2="593" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="599" width="321" height="26" fill="#7c3aed" rx="6"/>
+  <rect x="30" y="612" width="321" height="13" fill="#7c3aed"/>
+  <text x="190" y="617" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">3. start_background_task(): daemon 线程</text>
+  <rect x="30" y="631" width="1340" height="282" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="276" y="641" width="302" height="262" fill="#0f172a" rx="5"/>
+  <text x="296" y="664" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def start_background_task(</text>
+  <text x="296" y="681" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    block) -&gt; str:</text>
+  <text x="296" y="698" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  global _bg_counter</text>
+  <text x="296" y="715" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  bg_id = f"bg_{counter:04d}"</text>
+  <text x="296" y="732" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  def worker():</text>
+  <text x="296" y="749" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    result = execute_tool(block)</text>
+  <text x="296" y="766" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    with background_lock:</text>
+  <text x="296" y="783" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      tasks[bg_id]["status"]=</text>
+  <text x="296" y="800" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">        "completed"</text>
+  <text x="296" y="817" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      results[bg_id] = result</text>
+  <text x="296" y="834" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  t = Thread(target=worker,</text>
+  <text x="296" y="851" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">           daemon=True)</text>
+  <text x="296" y="868" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  t.start()</text>
+  <text x="296" y="885" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return bg_id</text>
+  <rect x="608" y="641" width="262" height="262" fill="#faf5ff" rx="5" stroke="#a855f7" stroke-width="1.5"/>
+  <text x="628" y="664" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">数据结构:</text>
+  <text x="628" y="681" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="628" y="698" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">background_tasks:</text>
+  <text x="628" y="715" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  bg_id → {tool_use_id,</text>
+  <text x="628" y="732" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">           command, status}</text>
+  <text x="628" y="749" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="628" y="766" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">background_results:</text>
+  <text x="628" y="783" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  bg_id → output</text>
+  <text x="628" y="800" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="628" y="817" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">background_lock:</text>
+  <text x="628" y="834" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  threading.Lock()</text>
+  <text x="628" y="851" fill="#6b21a8" font-size="11" font-family="Menlo, Monaco, monospace">  保护并发读写</text>
+  <rect x="900" y="641" width="223" height="262" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="920" y="664" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">daemon 线程:</text>
+  <text x="920" y="681" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="920" y="698" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· Thread(daemon=True)</text>
+  <text x="920" y="715" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  主线程退出时自动清理</text>
+  <text x="920" y="732" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· 线程内执行命令</text>
+  <text x="920" y="749" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  不阻塞 agent_loop</text>
+  <text x="920" y="766" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">· Lock 保护写操作</text>
+  <text x="920" y="783" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  线程安全</text>
+  <line x1="700" y1="923" x2="700" y2="939" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="945" width="343" height="26" fill="#dc2626" rx="6"/>
+  <rect x="30" y="958" width="343" height="13" fill="#dc2626"/>
+  <text x="201" y="963" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">4. collect_background_results + agent_loop</text>
+  <rect x="30" y="977" width="1340" height="299" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="225" y="987" width="318" height="279" fill="#0f172a" rx="5"/>
+  <text x="245" y="1010" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">def collect_background_results():</text>
+  <text x="245" y="1027" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  with background_lock:</text>
+  <text x="245" y="1044" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    ready = [bid for bid, t</text>
+  <text x="245" y="1061" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      in tasks.items()</text>
+  <text x="245" y="1078" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      if t["status"]=="completed"]</text>
+  <text x="245" y="1095" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  notifications = []</text>
+  <text x="245" y="1112" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  for bg_id in ready:</text>
+  <text x="245" y="1129" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    with background_lock:</text>
+  <text x="245" y="1146" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      task = tasks.pop(bg_id)</text>
+  <text x="245" y="1163" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      output = results.pop(bg_id)</text>
+  <text x="245" y="1180" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">    notifications.append(</text>
+  <text x="245" y="1197" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "&lt;task_notification&gt;\n"</text>
+  <text x="245" y="1214" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      f"{output}\n"</text>
+  <text x="245" y="1231" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">      "&lt;/task_notification&gt;")</text>
+  <text x="245" y="1248" fill="#94a3b8" font-size="11" font-family="Menlo, Monaco, monospace">  return notifications</text>
+  <rect x="573" y="987" width="302" height="279" fill="#fef2f2" rx="5" stroke="#fca5a5" stroke-width="1.5"/>
+  <text x="593" y="1010" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">agent_loop 变化:</text>
+  <text x="593" y="1027" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="593" y="1044" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">每个 tool_use block:</text>
+  <text x="593" y="1061" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  if should_run_background:</text>
+  <text x="593" y="1078" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">    bg_id = start_bg_task(block)</text>
+  <text x="593" y="1095" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">    注入 placeholder 通知</text>
+  <text x="593" y="1112" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  else:</text>
+  <text x="593" y="1129" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">    同步执行</text>
+  <text x="593" y="1146" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="593" y="1163" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">每轮工具执行后:</text>
+  <text x="593" y="1180" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  bg_notifications =</text>
+  <text x="593" y="1197" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">    collect_bg_results()</text>
+  <text x="593" y="1214" fill="#991b1b" font-size="11" font-family="Menlo, Monaco, monospace">  注入到 messages</text>
+  <rect x="905" y="987" width="270" height="279" fill="#fef3c7" rx="5" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="925" y="1010" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">通知格式:</text>
+  <text x="925" y="1027" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="925" y="1044" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">后台开始时:</text>
+  <text x="925" y="1061" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">"Background task bg_0001",</text>
+  <text x="925" y="1078" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">"started: pip install torch"</text>
+  <text x="925" y="1095" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="925" y="1112" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">后台完成时:</text>
+  <text x="925" y="1129" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">&lt;task_notification&gt;</text>
+  <text x="925" y="1146" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">  ... 命令输出 ...</text>
+  <text x="925" y="1163" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">&lt;/task_notification&gt;</text>
+  <text x="925" y="1180" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace"></text>
+  <text x="925" y="1197" fill="#92400e" font-size="11" font-family="Menlo, Monaco, monospace">下轮 LLM 调用时可见</text>
+  <line x1="700" y1="1286" x2="700" y2="1302" stroke="#2563eb" stroke-width="2" marker-end="url(#ab)"/>
+  <rect x="30" y="1308" width="256" height="26" fill="#16a34a" rx="6"/>
+  <rect x="30" y="1321" width="256" height="13" fill="#16a34a"/>
+  <text x="158" y="1326" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">5. agent_loop: 同步 + 后台混合</text>
+  <rect x="30" y="1340" width="1340" height="41" fill="#fff" stroke="#cbd5e1" stroke-width="1.5" rx="6"/>
+  <rect x="82" y="1340" width="111" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="102" y="1363" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">tool_use</text>
+  <rect x="222" y="1340" width="223" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="242" y="1363" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">should_run_background?</text>
+  <rect x="476" y="1340" width="151" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="496" y="1363" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">同步: handler</text>
+  <rect x="656" y="1340" width="175" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="676" y="1363" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">后台: daemon线程</text>
+  <rect x="862" y="1340" width="166" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="882" y="1363" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">collect_results</text>
+  <rect x="1058" y="1340" width="111" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="1078" y="1363" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">注入通知</text>
+  <rect x="1198" y="1340" width="120" height="41" fill="#f0f9ff" rx="5" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="1218" y="1363" fill="#0c4a6e" font-size="11" font-family="Menlo, Monaco, monospace">下一轮LLM</text>
+  <rect x="30" y="1396" width="1340" height="230" fill="#1e293b" rx="8"/>
+  <text x="700" y="1431" fill="#fbbf24" font-size="15" font-weight="bold" text-anchor="middle" font-family="Menlo, Monaco, monospace">daemon 线程 · 双重判断 · 通知注入</text>
+  <rect x="80" y="1466" width="242" height="240" fill="#334155" rx="6"/>
+  <text x="100" y="1494" fill="#93c5fd" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">核心概念:</text>
+  <text x="100" y="1516" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="1538" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">daemon 线程:</text>
+  <text x="100" y="1560" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  Thread(daemon=True)</text>
+  <text x="100" y="1582" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  不阻塞主循环</text>
+  <text x="100" y="1604" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="1626" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">双重判断:</text>
+  <text x="100" y="1648" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  模型显式 run_in_background</text>
+  <text x="100" y="1670" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  + 关键词启发式兜底</text>
+  <text x="100" y="1692" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="100" y="1714" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">线程安全:</text>
+  <text x="100" y="1736" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  threading.Lock 保护</text>
+  <rect x="362" y="1466" width="264" height="204" fill="#334155" rx="6"/>
+  <text x="382" y="1494" fill="#86efac" font-size="13" font-weight="bold" font-family="Menlo, Monaco, monospace">s13 模拟 vs 真实 CC:</text>
+  <text x="382" y="1516" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="382" y="1538" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">s13 (模拟): 4 方法 + 3 数据结构</text>
+  <text x="382" y="1560" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  关键词启发式 + daemon 线程</text>
+  <text x="382" y="1582" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  通知注入到 messages</text>
+  <text x="382" y="1604" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace"></text>
+  <text x="382" y="1626" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">真实 CC:</text>
+  <text x="382" y="1648" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  模型显式 run_in_background</text>
+  <text x="382" y="1670" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  Monitor 工具流式输出</text>
+  <text x="382" y="1692" fill="#94a3b8" font-size="11" font-weight="bold" font-family="Menlo, Monaco, monospace">  task_notification 格式通知</text>
+  <line x1="332" y1="1586" x2="357" y2="1586" stroke="#64748b" stroke-width="2" marker-end="url(#ab)"/>
+</svg>
